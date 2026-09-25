@@ -1,4 +1,4 @@
-import { hourKey, createHour, canWin, remaining } from './drawing.js';
+import { restoreHour, canWin, remaining } from './drawing.js';
 import { events } from './events.js';
 const $ = (selector) => document.querySelector(selector);
 const puzzlePhoto = side => `${import.meta.env.BASE_URL}puzzle/${side}.jpg`;
@@ -60,8 +60,8 @@ if (reviewMode) {
 function readHour() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    if (saved && saved.hour === hourKey(Date.now()) && Number.isFinite(saved.winAt) && typeof saved.claimed === 'boolean' && saved.winAt >= saved.hour * 3600000 && saved.winAt < (saved.hour + 1) * 3600000) state = saved;
-    else { state = createHour(Date.now(), () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296); localStorage.setItem(storageKey, JSON.stringify(state)); }
+    state = restoreHour(saved, Date.now(), () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
+    if (JSON.stringify(saved) !== JSON.stringify(state)) localStorage.setItem(storageKey, JSON.stringify(state));
   } catch { storageOk = false; }
 }
 function updateStatus() {
@@ -134,9 +134,11 @@ async function spin(forceWin = false) {
   const claim = () => {
     readHour();
     if (!isDemo && (!storageOk || state.claimed)) return false;
-    won = forceWin || (!isDemo && canWin(state, Date.now()));
+    const spinAt = Date.now();
+    won = forceWin || (!isDemo && canWin(state, spinAt));
     if (won && !isDemo) {
       state.claimed = true;
+      state.lastWinAt = spinAt;
       try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { storageOk = false; return false; }
     }
     return true;

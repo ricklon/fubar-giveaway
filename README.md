@@ -2,7 +2,7 @@
 
 An animated, responsive booth giveaway prototype. Run `npm install` and `npm run dev`. Use `npm run build` for a static production build and `npm test` for drawing rules.
 
-Visitors spin three reels. At the start of each clock hour, the browser chooses a random winning moment; the first spin after it wins the puzzle. Only one puzzle is awarded per hour; unclaimed prizes do not roll over. Keep the winning screen visible and have booth staff hand out the prize. Booth controls include demo spins and a guaranteed preview, neither of which consumes a prize.
+Visitors spin three reels. Each clock hour, the browser chooses a random winning moment between the hour’s start (or 30 minutes after the last actual winning spin, whichever is later) and its end; the first spin after it wins the puzzle. Only one puzzle is awarded per hour; unclaimed prizes do not roll over. Keep the winning screen visible and have booth staff hand out the prize. Booth controls include demo spins and a guaranteed preview, neither of which consumes a prize.
 
 State is stored locally in this browser, with Web Locks coordinating tabs where supported. This is a single-device prototype, not a secure raffle service: clearing or editing browser storage, changing the clock, or using another device can bypass the limit. A shared giveaway needs server-side award tracking and staff redemption. Live play is disabled when local storage is unavailable.
 
@@ -29,3 +29,5 @@ https://ricklon.github.io/fubar-giveaway/
 Pushes to `main` automatically test, build, and publish through `.github/workflows/pages.yml`. Pages builds use `/fubar-giveaway/` as the asset base and `VITE_REVIEW_MODE=true` to keep all reviewer spins in demo mode. The page has a feedback link to repository Issues. Use Booth controls → Preview a winning spin to rehearse the celebration. Local `npm run booth` continues to support real awards.
 
 Only the selected promotional assets under `public/events/` are committed. Raw `data/` artwork and `references/` are excluded, apart from the source notes in `data/README.md`.
+
+Winning-spin timestamps and the selected hourly moment persist across refreshes. A late win delays the next hour’s eligible window: a 1:50 win permits a random moment from 2:20 to 3:00. There is at most one puzzle winner per hour and no series winner. An eligible visitor spin is still required. Older saved claims without timestamps conservatively use the end of their claimed hour for the gap.
