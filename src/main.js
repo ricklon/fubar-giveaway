@@ -1,0 +1,167 @@
+import { hourKey, createHour, canWin, remaining } from './drawing.js';
+import { events } from './events.js';
+const $ = (selector) => document.querySelector(selector);
+let nextEvent = 0;
+let displayedEvent = 0;
+function showEvent(index) {
+  displayedEvent = index;
+  const event = events[index];
+  $('#event-title').textContent = event.title;
+  $('#event-organizer').textContent = event.organizer;
+  $('#event-description').textContent = event.description;
+  $('#event-details').textContent = event.details;
+  $('#event-invitation').dataset.theme = event.theme;
+  $('#event-links').replaceChildren(...event.links.map(({ label, url }) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.textContent = `${label} ↗`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    return link;
+  }));
+  const artwork = $('#event-artwork');
+  artwork.hidden = !event.image;
+  if (event.image) { artwork.src = event.image; artwork.alt = event.imageAlt; }
+  else { artwork.removeAttribute('src'); artwork.alt = ''; }
+  $('#event-invitation').hidden = false;
+}
+function puzzle(color = '#ed784e', dark = '#ba5031', light = '#ffa479') {
+  return `<svg viewBox="0 0 180 180" aria-hidden="true"><defs><pattern id="lines-${color.slice(1)}" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 1h4" stroke="#402310" stroke-opacity=".1" stroke-width=".7"/></pattern></defs><path d="M29 63 88 29 151 65 92 100Z" fill="${light}"/><path d="M29 63v62l63 36v-61Z" fill="${color}"/><path d="m92 100 59-35v61l-59 35Z" fill="${dark}"/><path d="m49 52 63 36v61M70 40l62 36v61M29 83l63 36 59-35M29 104l63 36 59-35" fill="none" stroke="#743b25" stroke-opacity=".5" stroke-width="2"/><path d="m49 75 60-34M70 88l61-35M50 76v61M71 88v61" fill="none" stroke="#743b25" stroke-opacity=".5" stroke-width="2"/><path d="m29 63 59-34 63 36v61l-59 35-63-36Z" fill="url(#lines-${color.slice(1)})"/><path d="m74 72 14-8 15 8-15 9Z" fill="${dark}"/><path d="M74 72v10l14 9V81Z" fill="${color}"/><path d="m88 81 15-9v10l-15 9Z" fill="${dark}"/></svg>`;
+}
+const icons = [puzzle(), `<svg viewBox="0 0 180 180" aria-hidden="true"><path d="m90 25 19 41 45 5-33 31 9 45-40-22-40 22 8-45-33-31 46-5Z" fill="#b1c65f" stroke="#73853c" stroke-width="3"/><path d="m90 25 0 71 40 51-9-45 33-31-45-5Z" fill="#92aa47"/></svg>`, `<svg viewBox="0 0 180 180" aria-hidden="true"><rect x="35" y="56" width="110" height="88" rx="17" fill="#9298c8" stroke="#626898" stroke-width="3"/><path d="M90 56V34" stroke="#626898" stroke-width="7"/><circle cx="90" cy="29" r="9" fill="#bed376"/><rect x="49" y="72" width="82" height="41" rx="10" fill="#353e4c"/><circle cx="70" cy="92" r="7" fill="#d7ec8a"/><circle cx="110" cy="92" r="7" fill="#d7ec8a"/><path d="M73 128h34" stroke="#535979" stroke-width="5"/><path d="M23 84v33m134-33v33" stroke="#626898" stroke-width="10"/></svg>`];
+$('#hero-puzzle').innerHTML = puzzle();
+const reels = [0,1,2].map(i => $(`#reel-${i}`));
+reels.forEach((reel, i) => { reel.innerHTML = icons[i]; });
+const storageKey = 'fubar-hourly-drawing-v1';
+let state;
+let storageOk = true;
+let busy = false;
+const reviewMode = import.meta.env.VITE_REVIEW_MODE === 'true';
+let demo = reviewMode;
+$('#demo-mode').checked = demo;
+if (reviewMode) {
+  $('#demo-mode').disabled = true;
+  $('#review-banner').hidden = false;
+}
+function readHour() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    if (saved && saved.hour === hourKey(Date.now()) && Number.isFinite(saved.winAt) && typeof saved.claimed === 'boolean' && saved.winAt >= saved.hour * 3600000 && saved.winAt < (saved.hour + 1) * 3600000) state = saved;
+    else { state = createHour(Date.now(), () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296); localStorage.setItem(storageKey, JSON.stringify(state)); }
+  } catch { storageOk = false; }
+}
+function updateStatus() {
+  if (!busy) readHour();
+  const seconds = remaining(Date.now());
+  $('#countdown').textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
+  $('#prize-status').textContent = !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'This hour’s puzzle has found its person!' : 'This hour’s puzzle is up for grabs';
+  if (!busy) {
+    $('#spin').disabled = !demo && (!storageOk || state?.claimed);
+    $('#try-again').disabled = $('#spin').disabled;
+    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'NEXT PUZZLE, NEXT HOUR' : 'GIVE IT A SPIN';
+  }
+}
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const showDialog = $('#show-dialog');
+showDialog.addEventListener('cancel', event => event.preventDefault());
+function waitForHost() {
+  return new Promise(resolve => $('#show-next').addEventListener('click', resolve, { once: true }));
+}
+async function tellStory(event, isDemo) {
+  showDialog.classList.remove('celebration');
+  $('#confetti').replaceChildren();
+  $('#show-kicker').textContent = 'WHILE YOUR LUCK IS IN THE MAKING…';
+  $('#show-title').textContent = event.title;
+  $('#show-description').textContent = event.description;
+  $('#show-details').textContent = event.details;
+  $('#show-demo').hidden = !isDemo;
+  $('#show-next').textContent = 'Reveal the spin ↗';
+  $('#show-hint').textContent = 'Tell the story, then press here to reveal the result.';
+  const art = $('#show-art');
+  art.replaceChildren();
+  if (event.image) {
+    const img = document.createElement('img');
+    img.src = event.image;
+    img.alt = event.imageAlt;
+    img.addEventListener('error', () => { art.innerHTML = puzzle(); }, { once: true });
+    art.append(img);
+  } else art.innerHTML = puzzle();
+  showDialog.showModal();
+  $('#show-title').focus();
+  await waitForHost();
+  showDialog.close();
+}
+async function celebrate(isDemo) {
+  showDialog.classList.add('celebration');
+  $('#show-kicker').textContent = 'THREE PUZZLES. ONE LUCKY MAKER.';
+  $('#show-title').textContent = isDemo ? 'YEAH! That’s a winning spin!' : 'YEAH! You got the prize!';
+  $('#show-description').textContent = isDemo ? 'This is the celebration your winner will see.' : 'This hour’s FUBAR puzzle is yours. Let’s get that prize into your hands!';
+  $('#show-details').textContent = 'Made at the lab. Ready for your next “aha!” moment.';
+  $('#show-demo').hidden = !isDemo;
+  $('#show-art').innerHTML = puzzle();
+  $('#show-next').textContent = isDemo ? 'Finish preview ↗' : 'Prize handed over · next visitor ↗';
+  $('#show-hint').textContent = 'The celebration stays here until the booth crew is ready.';
+  $('#confetti').replaceChildren(...Array.from({ length: 65 }, (_, i) => {
+    const piece = document.createElement('i');
+    piece.style.cssText = `left:${Math.random()*100}%;--delay:${Math.random()*2}s;--drift:${Math.random()*200-100}px;background:${['#d5ef79','#ff905a','#8dc5ff','#ed89c7'][i%4]}`;
+    return piece;
+  }));
+  showDialog.showModal();
+  $('#show-title').focus();
+  await waitForHost();
+  showDialog.close();
+  $('#confetti').replaceChildren();
+}
+async function spin(forceWin = false) {
+  if (busy) return;
+  busy = true;
+  const isDemo = demo || forceWin;
+  let won = false;
+  const claim = () => {
+    readHour();
+    if (!isDemo && (!storageOk || state.claimed)) return false;
+    won = forceWin || (!isDemo && canWin(state, Date.now()));
+    if (won && !isDemo) {
+      state.claimed = true;
+      try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { storageOk = false; return false; }
+    }
+    return true;
+  };
+  const allowed = navigator.locks ? await navigator.locks.request(storageKey, claim) : claim();
+  if (!allowed) { busy = false; updateStatus(); return; }
+  $('.machine').classList.remove('winner');
+  $('#event-invitation').hidden = true;
+  $('#result').textContent = '';
+  $('#spin').disabled = true;
+  $('#spin span').textContent = 'A LITTLE LUCK IN THE MAKING…';
+  $('#spin-note').textContent = isDemo ? 'Demo spin · no prize will be awarded' : 'Let’s see what comes together.';
+  reels.forEach(reel => reel.classList.add('spinning'));
+  const ticker = setInterval(() => reels.forEach(reel => { if (reel.classList.contains('spinning')) reel.innerHTML = icons[Math.floor(Math.random()*3)]; }), 90);
+  await pause(matchMedia('(prefers-reduced-motion: reduce)').matches ? 150 : 1300);
+  const storyIndex = nextEvent;
+  nextEvent = (nextEvent + 1) % events.length;
+  await tellStory(events[storyIndex], isDemo);
+  const outcome = won ? [0,0,0] : [Math.floor(Math.random()*3), Math.floor(Math.random()*3), 1 + Math.floor(Math.random()*2)];
+  for (let i=0; i<3; i++) { reels[i].classList.remove('spinning'); reels[i].innerHTML = icons[outcome[i]]; await pause(230); }
+  clearInterval(ticker);
+  if (won) $('.machine').classList.add('winner');
+  $('#result').textContent = won ? isDemo ? 'That’s a winning match! Demo only — no prize awarded.' : 'YOU MADE YOUR LUCK! Grab the booth crew to collect your FUBAR puzzle.' : isDemo ? 'Practice spin complete. Here’s what visitors see after a non-winning spin.' : 'No puzzle this spin, but there’s more fun to discover!';
+  if (!won) {
+    showEvent(storyIndex);
+    $('#result').textContent += ` Check out ${events[displayedEvent].title} below.`;
+  }
+  $('#spin-note').textContent = 'Free to play. Come for the puzzle, stay for the making.';
+  if (won) await celebrate(isDemo);
+  busy = false;
+  updateStatus();
+}
+$('#spin').addEventListener('click', () => spin());
+$('#try-again').addEventListener('click', () => { $('#spin').focus(); spin(); });
+$('#other-event').addEventListener('click', () => showEvent((displayedEvent + 1) % events.length));
+$('#event-artwork').addEventListener('error', () => { $('#event-artwork').hidden = true; });
+$('#staff-open').addEventListener('click', () => $('#staff-dialog').showModal());
+$('#demo-mode').addEventListener('change', event => { demo = event.target.checked; updateStatus(); });
+$('#demo-win').addEventListener('click', () => { $('#staff-dialog').close(); spin(true); });
+window.addEventListener('storage', updateStatus);
+updateStatus();
+setInterval(updateStatus, 1000);

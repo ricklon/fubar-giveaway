@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+data/*
+!data/README.md
+references/
+*:Zone.Identifier
+.env
+.env.*
