@@ -31,3 +31,16 @@ Pushes to `main` automatically test, build, and publish through `.github/workflo
 Only the selected promotional assets under `public/events/` are committed. Raw `data/` artwork and `references/` are excluded, apart from the source notes in `data/README.md`.
 
 Winning-spin timestamps and the selected hourly moment persist across refreshes. A late win delays the next hour’s eligible window: a 1:50 win permits a random moment from 2:20 to 3:00. There is at most one puzzle winner per hour and no series winner. An eligible visitor spin is still required. Older saved claims without timestamps conservatively use the end of their claimed hour for the gap.
+
+## Kiosk and member interaction
+
+Click **Enter kiosk** for a simplified, fullscreen booth display. `?kiosk=1` opens the layout directly; browsers still require a click or F11 to enter fullscreen. **Exit kiosk** restores the full page. Escape can exit browser fullscreen; kiosk layout remains active until you exit it.
+
+- **Space** starts an available spin. Holding it does not repeat spins or skip the story/result.
+- **Enter** advances the story and closes the visitor’s result. Buttons also support mouse and touch.
+- After a non-winning spin, kiosk mode thanks the visitor and invites a conversation; the host advances when ready. There is no timed dismissal or forced retry.
+- The normal hourly prize limit and 30-minute separation still apply. The public review build stays in demo mode.
+
+Before the event, set the booth computer not to sleep during the session and rehearse at the actual screen distance. Keep a physical puzzle available to talk about, and introduce the volunteer hosting the booth. Short stories from the members who printed or designed a piece will be more useful than more promotional copy.
+
+Browser checks: `npx playwright install chromium`, then `npm run test:e2e`. Tests cover fullscreen, keyboard play, a held Space key, non-winning and winning flows, demo prize isolation, and common kiosk screen sizes.

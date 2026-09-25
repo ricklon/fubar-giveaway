@@ -4,29 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f6f4ed" />
-  <title>FUBAR Labs · Make your luck</title>
+  <title>FUBAR Labs · Robocon puzzle giveaway</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <div id="review-banner" class="review-banner" hidden>MEMBER REVIEW · Demo only, no prizes awarded. Try a spin or use Booth controls to preview a win. <a href="https://github.com/ricklon/fubar-giveaway/issues" target="_blank" rel="noopener noreferrer">Leave feedback ↗</a></div>
   <header class="site-header">
-    <a class="brand" href="./" aria-label="FUBAR Labs home"><span class="brand-mark">F<span>✳</span>B</span><span>FUBAR<span class="brand-sub">LABS / NEW JERSEY</span></span></a>
+    <a class="brand" href="./" aria-label="FUBAR Labs home"><span>FUBAR<span class="brand-sub">LABS / NEW JERSEY</span></span></a>
     <div class="event-label"><span class="status-dot"></span> MAKING THINGS AT ROBOCON <span class="event-year">2026</span></div>
-    <button class="text-button" id="staff-open">Booth controls <span>↗</span></button>
+    <div class="header-actions"><button class="text-button" id="kiosk-toggle" type="button" aria-pressed="false">Enter kiosk</button><button class="text-button" id="staff-open">Booth controls</button></div>
   </header>
+  <p id="kiosk-status" class="kiosk-status" role="status"></p>
   <main>
-    <section class="intro"><div><p class="eyebrow">A LITTLE LUCK. A LOT OF MAKING.</p><h1>Good things<br>come in <span>pieces.</span><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 5v90M5 50h90M18 18l64 64M18 82l64-64"/></svg></h1></div><div class="intro-copy"><p>Made by us. Won by you.</p><p>Take a spin for a 3D-printed FUBAR puzzle.<br>One puzzle, every hour. All kinds of fun.</p><a href="#how-it-works">Here’s how it works <span>↓</span></a></div></section>
+    <section class="intro"><div><p class="eyebrow">FUBAR LABS AT ROBOCON</p><h1>We made a puzzle.<br><span>Want to try it?</span><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 5v90M5 50h90M18 18l64 64M18 82l64-64"/></svg></h1></div><div class="intro-copy"><p>Come meet the people who made it.</p><p>Take a spin for a 3D-printed FUBAR puzzle.<br>One puzzle winner per hour. Free to play.</p><a href="#how-it-works">Here’s how it works <span>↓</span></a></div></section>
     <section class="giveaway-grid" aria-label="Puzzle giveaway">
       <article class="machine">
-        <div class="machine-top"><span><span class="live-dot"></span> THE FUBAR LUCK MACHINE</span><span class="edition">VOL. 001</span></div>
-        <div class="machine-body"><div class="machine-title"><h2>Let’s get a little lucky.</h2><p>Match three puzzles. Make one yours.</p></div>
+        <div class="machine-top"><span><span class="live-dot"></span> THE PUZZLE GIVEAWAY</span><span class="edition">ROBOCON 2026</span></div>
+        <div class="machine-body"><div class="machine-title"><h2>Press Space or tap to spin.</h2><p>Three puzzle photos win this hour’s prize.</p></div>
           <div class="reels" aria-label="Three prize reels"><div class="payline"></div><div class="reel" id="reel-0"></div><div class="reel" id="reel-1"></div><div class="reel" id="reel-2"></div></div>
-          <div class="reel-labels"><span>DESIGNED.</span><span>PRINTED.</span><span>YOURS?</span></div>
+          <div class="reel-labels"><span>ONE</span><span>PUZZLE</span><span>WINNER</span></div>
           <button id="spin" class="spin-button"><span>GIVE IT A SPIN</span><span>↗</span></button>
-          <p class="spin-note" id="spin-note">Free to play. Come for the puzzle, stay for the making.</p>
+          <p class="spin-note" id="spin-note">No signup. No purchase. Just say hello.</p>
           <div id="result" class="result" role="status" aria-live="polite"></div>
           <section id="event-invitation" class="event-invitation" aria-labelledby="event-title" hidden>
-            <p class="eyebrow">YOUR NEXT GOOD TIME</p>
+            <p class="eyebrow">COME SEE WHAT WE’RE MAKING</p>
             <img id="event-artwork" class="event-artwork" alt="" hidden />
             <p id="event-organizer" class="event-organizer"></p>
             <h3 id="event-title"></h3>
@@ -37,14 +38,14 @@
             <div class="event-actions"><button id="other-event" type="button">More to explore ↗</button><button id="try-again" type="button">Spin again ↻</button></div>
           </section>
         </div>
-        <div class="machine-bottom"><span>✳ BUILT WITH CURIOSITY</span><span>POWERED BY FUBAR LABS ↗</span></div>
+        <div class="machine-bottom"><span>MADE BY FUBAR LABS MEMBERS</span><span>ONE PRIZE PER HOUR</span></div>
       </article>
-      <aside class="prize-card"><div class="prize-heading"><span class="eyebrow">THE MAIN EVENT</span><span class="pill">3D PRINTED</span></div><h2>Small puzzle.<br>Big brain energy.</h2><div class="puzzle-stage"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><div id="hero-puzzle"></div><span class="object-label">MADE OF POSSIBILITIES ↗</span><span class="piece-tag">A little<br>head-scratcher.</span></div><div class="prize-detail"><div><h3>The FUBAR Puzzle</h3><p>Printed at the lab. Ready to outsmart you.</p></div><span class="detail-arrow">↗</span></div><div class="availability"><span class="status-dot"></span><span id="prize-status">This hour’s puzzle is up for grabs</span></div><div class="next-drop"><span>NEXT HOUR STARTS IN</span><strong id="countdown">--:--</strong></div></aside>
+      <aside class="prize-card"><div class="prize-heading"><span class="eyebrow">THIS IS THE PRIZE</span><span class="pill">3D PRINTED</span></div><h2>Printed at our lab.<br>Yours to figure out.</h2><div class="puzzle-stage"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><div id="hero-puzzle"></div><span class="object-label">MADE OF POSSIBILITIES ↗</span><span class="piece-tag">A little<br>head-scratcher.</span></div><div class="prize-detail"><div><h3>The FUBAR Puzzle</h3><p>Fit the colorful pieces back into the tray.</p></div><span class="detail-arrow">↗</span></div><div class="availability"><span class="status-dot"></span><span id="prize-status">This hour’s puzzle is up for grabs</span></div><div class="next-drop"><span>NEXT HOUR STARTS IN</span><strong id="countdown">--:--</strong></div></aside>
     </section>
-    <section class="how" id="how-it-works"><div class="how-heading"><p class="eyebrow">FROM OUR PRINTER TO YOUR POCKET</p><h2>A spin. A match.<br>A new obsession.</h2></div><div class="step"><span>01 /</span><h3>Push your luck.</h3><p>Hit the big button and let the reels do their thing.</p></div><div class="step"><span>02 /</span><h3>Find your match.</h3><p>Three FUBAR puzzles in a row? That’s the winning combination.</p></div><div class="step"><span>03 /</span><h3>Meet your makers.</h3><p>Show our booth crew your win and collect your 3D-printed prize.</p></div></section>
-    <div class="community-strip"><span class="community-icon">✳</span><p>We’re FUBAR Labs.<span>A community of curious people making extraordinary things.</span></p><span class="visit-note">SAY HI AT THE BOOTH ↗</span></div>
+    <section class="how" id="how-it-works"><div class="how-heading"><p class="eyebrow">EVERYONE IS WELCOME</p><h2>Stop by.<br>Ask us anything.</h2></div><div class="step"><span>01 /</span><h3>Take a turn.</h3><p>Press Space or tap the spin button. We’ll share a little about what we make.</p></div><div class="step"><span>02 /</span><h3>Find your match.</h3><p>Three FUBAR puzzles in a row? That’s the winning combination.</p></div><div class="step"><span>03 /</span><h3>Meet your makers.</h3><p>Show our booth crew your win and collect your 3D-printed prize.</p></div></section>
+    <div class="community-strip"><span class="community-icon">✳</span><p>We’re FUBAR Labs.<span>You don’t need experience to start a conversation. What would you like to make?</span></p><span class="visit-note">SAY HI AT THE BOOTH ↗</span></div>
   </main>
-  <footer><span>FUBAR LABS <span class="footer-dot">/</span> ROBOCON 2026</span><span>Made with filament & a healthy dose of curiosity.</span><span>MAKE. BREAK. LEARN. REPEAT.</span></footer>
+  <footer><span>FUBAR LABS <span class="footer-dot">/</span> ROBOCON 2026</span><span>Made by volunteers in North Brunswick, New Jersey.</span><span>THANKS FOR STOPPING BY.</span></footer>
   <dialog id="staff-dialog"><form method="dialog"><button class="close" aria-label="Close controls">×</button></form><p class="eyebrow">FOR THE BOOTH CREW</p><h2>Giveaway controls</h2><p>This prototype tracks one puzzle per hour in this browser. Use one booth device; shared devices and tamper-resistant drawings need a server.</p><label class="check"><input type="checkbox" id="demo-mode"> Demo mode — spins don’t award prizes</label><button id="demo-win" class="secondary-button">Preview a winning spin</button><p class="control-note">One puzzle winner per hour, with at least 30 minutes between winning spins. Each hour’s winning moment is randomly chosen after that minimum gap. The first spin after that moment wins. An unclaimed prize does not roll over.</p></dialog>
   <dialog id="show-dialog" class="show-dialog" aria-labelledby="show-title">
     <div id="confetti" aria-hidden="true"></div>

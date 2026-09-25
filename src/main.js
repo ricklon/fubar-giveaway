@@ -84,13 +84,13 @@ function waitForHost() {
 async function tellStory(event, isDemo) {
   showDialog.classList.remove('celebration');
   $('#confetti').replaceChildren();
-  $('#show-kicker').textContent = 'WHILE YOUR LUCK IS IN THE MAKING…';
+  $('#show-kicker').textContent = 'A STORY FROM THE BOOTH';
   $('#show-title').textContent = event.title;
   $('#show-description').textContent = event.description;
   $('#show-details').textContent = event.details;
   $('#show-demo').hidden = !isDemo;
   $('#show-next').textContent = 'Reveal the spin ↗';
-  $('#show-hint').textContent = 'Tell the story, then press here to reveal the result.';
+  $('#show-hint').textContent = 'Booth host: tell the story, then press Enter to reveal the result.';
   const art = $('#show-art');
   art.replaceChildren();
   if (event.image) {
@@ -107,10 +107,10 @@ async function tellStory(event, isDemo) {
 }
 async function celebrate(isDemo) {
   showDialog.classList.add('celebration');
-  $('#show-kicker').textContent = 'THREE PUZZLES. ONE LUCKY MAKER.';
+  $('#show-kicker').textContent = 'THIS HOUR’S PUZZLE WINNER';
   $('#show-title').textContent = isDemo ? 'YEAH! That’s a winning spin!' : 'YEAH! You got the prize!';
   $('#show-description').textContent = isDemo ? 'This is the celebration your winner will see.' : 'This hour’s FUBAR puzzle is yours. Let’s get that prize into your hands!';
-  $('#show-details').textContent = 'Made at the lab. Ready for your next “aha!” moment.';
+  $('#show-details').textContent = 'Thanks for spending a little of your day with us.';
   $('#show-demo').hidden = !isDemo;
   $('#show-art').innerHTML = `<div class="prize-photos"><figure>${puzzleFront}<figcaption>Your FUBAR puzzle</figcaption></figure><figure><img src="${puzzlePhoto('back')}" alt="Back of the puzzle with a printed QR code" /><figcaption>A little making on both sides.</figcaption></figure></div>`;
   $('#show-next').textContent = isDemo ? 'Finish preview ↗' : 'Prize handed over · next visitor ↗';
@@ -149,7 +149,7 @@ async function spin(forceWin = false) {
   $('#event-invitation').hidden = true;
   $('#result').textContent = '';
   $('#spin').disabled = true;
-  $('#spin span').textContent = 'A LITTLE LUCK IN THE MAKING…';
+  $('#spin span').textContent = 'SPINNING…';
   $('#spin-note').textContent = isDemo ? 'Demo spin · no prize will be awarded' : 'Let’s see what comes together.';
   reels.forEach(reel => reel.classList.add('spinning'));
   const ticker = setInterval(() => reels.forEach(reel => { if (reel.classList.contains('spinning')) reel.innerHTML = icons[Math.floor(Math.random()*3)]; }), 90);
@@ -161,15 +161,17 @@ async function spin(forceWin = false) {
   for (let i=0; i<3; i++) { reels[i].classList.remove('spinning'); reels[i].innerHTML = icons[outcome[i]]; await pause(230); }
   clearInterval(ticker);
   if (won) $('.machine').classList.add('winner');
-  $('#result').textContent = won ? isDemo ? 'That’s a winning match! Demo only — no prize awarded.' : 'YOU MADE YOUR LUCK! Grab the booth crew to collect your FUBAR puzzle.' : isDemo ? 'Practice spin complete. Here’s what visitors see after a non-winning spin.' : 'No puzzle this spin, but there’s more fun to discover!';
+  $('#result').textContent = won ? isDemo ? 'That’s a winning match! Demo only — no prize awarded.' : 'You won this hour’s puzzle! We’ll help you collect it.' : isDemo ? 'Practice spin complete. Here’s what visitors see after a non-winning spin.' : 'No match this time. Thanks for taking a turn—come talk puzzles with us.';
   if (!won) {
     showEvent(storyIndex);
     $('#result').textContent += ` Check out ${events[displayedEvent].title} below.`;
   }
-  $('#spin-note').textContent = 'Free to play. Come for the puzzle, stay for the making.';
+  $('#spin-note').textContent = 'No signup. No purchase. Just say hello.';
   if (won) await celebrate(isDemo);
+  else if (document.body.classList.contains('kiosk')) await thankVisitor(isDemo);
   busy = false;
   updateStatus();
+  $('#spin').focus({ preventScroll: true });
 }
 $('#spin').addEventListener('click', () => spin());
 $('#try-again').addEventListener('click', () => { $('#spin').focus(); spin(); });
@@ -181,3 +183,61 @@ $('#demo-win').addEventListener('click', () => { $('#staff-dialog').close(); spi
 window.addEventListener('storage', updateStatus);
 updateStatus();
 setInterval(updateStatus, 1000);
+
+async function thankVisitor(isDemo) {
+  $('#show-kicker').textContent = 'THANKS FOR TAKING A TURN';
+  $('#show-title').textContent = 'No match this time. Glad you stopped by.';
+  $('#show-description').textContent = 'Want to see how the puzzle works? Ask us about the pieces, the printer, or something you’d like to make.';
+  $('#show-details').textContent = 'You don’t have to win a prize to join the conversation.';
+  $('#show-demo').hidden = !isDemo;
+  $('#show-next').textContent = 'Ready for the next visitor';
+  $('#show-hint').textContent = 'Booth host: press Enter when you’re ready.';
+  showDialog.showModal();
+  $('#show-title').focus();
+  await waitForHost();
+  showDialog.close();
+}
+
+function setKiosk(enabled) {
+  document.body.classList.toggle('kiosk', enabled);
+  $('#kiosk-toggle').setAttribute('aria-pressed', String(enabled));
+  $('#kiosk-toggle').textContent = enabled ? 'Exit kiosk' : 'Enter kiosk';
+  const url = new URL(location.href);
+  if (enabled) url.searchParams.set('kiosk', '1');
+  else url.searchParams.delete('kiosk');
+  history.replaceState(null, '', url);
+  window.scrollTo(0, 0);
+}
+$('#kiosk-toggle').addEventListener('click', async () => {
+  const enabled = !document.body.classList.contains('kiosk');
+  setKiosk(enabled);
+  $('#kiosk-status').textContent = '';
+  try {
+    if (enabled && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+    else if (!enabled && document.fullscreenElement) await document.exitFullscreen();
+  } catch {
+    $('#kiosk-status').textContent = 'Kiosk layout is ready. Use your browser’s fullscreen control (usually F11) to fill the display.';
+  }
+  if (enabled) $('#spin').focus({ preventScroll: true });
+});
+if (new URLSearchParams(location.search).get('kiosk') === '1') setKiosk(true);
+
+document.addEventListener('keydown', event => {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+  if (event.code !== 'Space' && event.key !== 'Enter') return;
+  if (event.repeat) { event.preventDefault(); return; }
+  if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+  if ($('#staff-dialog').open) return;
+  if (showDialog.open) {
+    // A held spin key must never reveal or dismiss a visitor’s result.
+    if (event.code === 'Space') { event.preventDefault(); return; }
+    event.preventDefault();
+    $('#show-next').click();
+    return;
+  }
+  if (event.code === 'Space') {
+    if (event.target.closest('button, a') && !event.target.closest('#spin')) return;
+    event.preventDefault();
+    if (!busy && !$('#spin').disabled) spin();
+  }
+});
