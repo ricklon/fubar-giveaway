@@ -20,3 +20,13 @@ Puzzle photos supplied by the organizer:
 - `IMG_1701.jpg` → `public/puzzle/front.jpg`: FUBAR tray and colorful loose puzzle pieces. Used on the reels and prize card.
 - `IMG_1705.jpg` → `public/puzzle/back.jpg`: blue reverse with printed yellow QR code. Available via the prize-card flip button and shown alongside the front in the winning celebration. QR destination has not been verified; no destination claim is made.
 - Photos copied unchanged; presentation uses CSS sizing with no cropping.
+
+## Maker Fest 2025 album
+
+Organizer-supplied album: https://photos.app.goo.gl/GA9KqA7q9TyFYnbA6 (titled “2025 Day 1 Maker Faire”). Selected September 24, 2026. Saved Google-served 1600px versions as local assets so the booth does not depend on Google Photos loading.
+
+- `public/events/maker-fest-2025-conversation.jpg`: visitors talking at the robotics table; Maker Fest story image.
+- `public/events/maker-fest-2025-fubar.jpg`: person making at the picnic table beside the FUBAR banner; FUBAR story image.
+- `public/events/maker-fest-2025-robotics.jpg`: visitor holding a controller beside the arena; robotics story image.
+
+Captions identify these as 2025 photos, separate from the upcoming 2026 event details. People are not named or assigned unverified roles. Existing poster and trophy assets remain available.

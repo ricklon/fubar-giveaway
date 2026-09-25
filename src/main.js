@@ -93,12 +93,18 @@ async function tellStory(event, isDemo) {
   $('#show-hint').textContent = 'Booth host: tell the story, then press Enter to reveal the result.';
   const art = $('#show-art');
   art.replaceChildren();
-  if (event.image) {
+  if (event.storyImage || event.image) {
     const img = document.createElement('img');
-    img.src = event.image;
-    img.alt = event.imageAlt;
+    img.src = event.storyImage || event.image;
+    img.alt = event.storyImageAlt || event.imageAlt;
     img.addEventListener('error', () => { art.innerHTML = puzzle(); }, { once: true });
     art.append(img);
+    if (event.photoCaption) {
+      const caption = document.createElement('p');
+      caption.className = 'photo-caption';
+      caption.textContent = event.photoCaption;
+      art.append(caption);
+    }
   } else art.innerHTML = puzzleFront;
   showDialog.showModal();
   $('#show-title').focus();
