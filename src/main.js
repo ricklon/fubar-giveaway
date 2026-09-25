@@ -1,6 +1,8 @@
 import { hourKey, createHour, canWin, remaining } from './drawing.js';
 import { events } from './events.js';
 const $ = (selector) => document.querySelector(selector);
+const puzzlePhoto = side => `${import.meta.env.BASE_URL}puzzle/${side}.jpg`;
+const puzzleFront = `<img class="puzzle-photo" src="${puzzlePhoto('front')}" alt="FUBAR puzzle tray with colorful hexagonal pieces" />`;
 let nextEvent = 0;
 let displayedEvent = 0;
 function showEvent(index) {
@@ -29,7 +31,19 @@ function puzzle(color = '#ed784e', dark = '#ba5031', light = '#ffa479') {
   return `<svg viewBox="0 0 180 180" aria-hidden="true"><defs><pattern id="lines-${color.slice(1)}" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 1h4" stroke="#402310" stroke-opacity=".1" stroke-width=".7"/></pattern></defs><path d="M29 63 88 29 151 65 92 100Z" fill="${light}"/><path d="M29 63v62l63 36v-61Z" fill="${color}"/><path d="m92 100 59-35v61l-59 35Z" fill="${dark}"/><path d="m49 52 63 36v61M70 40l62 36v61M29 83l63 36 59-35M29 104l63 36 59-35" fill="none" stroke="#743b25" stroke-opacity=".5" stroke-width="2"/><path d="m49 75 60-34M70 88l61-35M50 76v61M71 88v61" fill="none" stroke="#743b25" stroke-opacity=".5" stroke-width="2"/><path d="m29 63 59-34 63 36v61l-59 35-63-36Z" fill="url(#lines-${color.slice(1)})"/><path d="m74 72 14-8 15 8-15 9Z" fill="${dark}"/><path d="M74 72v10l14 9V81Z" fill="${color}"/><path d="m88 81 15-9v10l-15 9Z" fill="${dark}"/></svg>`;
 }
 const icons = [puzzle(), `<svg viewBox="0 0 180 180" aria-hidden="true"><path d="m90 25 19 41 45 5-33 31 9 45-40-22-40 22 8-45-33-31 46-5Z" fill="#b1c65f" stroke="#73853c" stroke-width="3"/><path d="m90 25 0 71 40 51-9-45 33-31-45-5Z" fill="#92aa47"/></svg>`, `<svg viewBox="0 0 180 180" aria-hidden="true"><rect x="35" y="56" width="110" height="88" rx="17" fill="#9298c8" stroke="#626898" stroke-width="3"/><path d="M90 56V34" stroke="#626898" stroke-width="7"/><circle cx="90" cy="29" r="9" fill="#bed376"/><rect x="49" y="72" width="82" height="41" rx="10" fill="#353e4c"/><circle cx="70" cy="92" r="7" fill="#d7ec8a"/><circle cx="110" cy="92" r="7" fill="#d7ec8a"/><path d="M73 128h34" stroke="#535979" stroke-width="5"/><path d="M23 84v33m134-33v33" stroke="#626898" stroke-width="10"/></svg>`];
-$('#hero-puzzle').innerHTML = puzzle();
+icons[0] = puzzleFront;
+let puzzleSide = 'front';
+$('#hero-puzzle').innerHTML = `<button id="flip-puzzle" class="flip-puzzle" aria-label="Show the back of the puzzle">${puzzleFront}<span>See the back ↻</span></button>`;
+$('#flip-puzzle').addEventListener('click', () => {
+  puzzleSide = puzzleSide === 'front' ? 'back' : 'front';
+  const button = $('#flip-puzzle');
+  const img = button.querySelector('img');
+  img.src = puzzlePhoto(puzzleSide);
+  img.alt = puzzleSide === 'front' ? 'FUBAR puzzle tray with colorful hexagonal pieces' : 'Blue back of the FUBAR puzzle with a yellow printed QR code';
+  const otherSide = puzzleSide === 'front' ? 'back' : 'front';
+  button.setAttribute('aria-label', `Show the ${otherSide} of the puzzle`);
+  button.querySelector('span').textContent = `See the ${otherSide} ↻`;
+});
 const reels = [0,1,2].map(i => $(`#reel-${i}`));
 reels.forEach((reel, i) => { reel.innerHTML = icons[i]; });
 const storageKey = 'fubar-hourly-drawing-v1';
@@ -85,7 +99,7 @@ async function tellStory(event, isDemo) {
     img.alt = event.imageAlt;
     img.addEventListener('error', () => { art.innerHTML = puzzle(); }, { once: true });
     art.append(img);
-  } else art.innerHTML = puzzle();
+  } else art.innerHTML = puzzleFront;
   showDialog.showModal();
   $('#show-title').focus();
   await waitForHost();
@@ -98,7 +112,7 @@ async function celebrate(isDemo) {
   $('#show-description').textContent = isDemo ? 'This is the celebration your winner will see.' : 'This hour’s FUBAR puzzle is yours. Let’s get that prize into your hands!';
   $('#show-details').textContent = 'Made at the lab. Ready for your next “aha!” moment.';
   $('#show-demo').hidden = !isDemo;
-  $('#show-art').innerHTML = puzzle();
+  $('#show-art').innerHTML = `<div class="prize-photos"><figure>${puzzleFront}<figcaption>Your FUBAR puzzle</figcaption></figure><figure><img src="${puzzlePhoto('back')}" alt="Back of the puzzle with a printed QR code" /><figcaption>A little making on both sides.</figcaption></figure></div>`;
   $('#show-next').textContent = isDemo ? 'Finish preview ↗' : 'Prize handed over · next visitor ↗';
   $('#show-hint').textContent = 'The celebration stays here until the booth crew is ready.';
   $('#confetti').replaceChildren(...Array.from({ length: 65 }, (_, i) => {

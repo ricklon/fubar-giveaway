@@ -15,3 +15,8 @@ Official links:
 - https://fubarlabs.org/ — confirms volunteer-run maker community and address at 1510B Jersey Ave, North Brunswick, NJ.
 
 Keep source/working materials here. Only approved assets under public/ are included in the static production build.
+
+Puzzle photos supplied by the organizer:
+- `IMG_1701.jpg` → `public/puzzle/front.jpg`: FUBAR tray and colorful loose puzzle pieces. Used on the reels and prize card.
+- `IMG_1705.jpg` → `public/puzzle/back.jpg`: blue reverse with printed yellow QR code. Available via the prize-card flip button and shown alongside the front in the winning celebration. QR destination has not been verified; no destination claim is made.
+- Photos copied unchanged; presentation uses CSS sizing with no cropping.
