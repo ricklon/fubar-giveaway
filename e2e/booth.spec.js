@@ -16,9 +16,9 @@ test('kiosk supports keyboard story and win, ignores held Space, and fits displa
   await page.keyboard.down('Space');
   await page.keyboard.up('Space');
   await expect(page.locator('#show-title')).toHaveText('Sussex County Maker Fest');
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
   await expect(page.locator('#show-title')).toHaveText('No match this time. Glad you stopped by.');
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
   await expect(page.locator('#show-dialog')).not.toBeVisible();
   await expect(page.locator('#spin')).toBeEnabled();
   await page.locator('#staff-open').click();
@@ -28,8 +28,6 @@ test('kiosk supports keyboard story and win, ignores held Space, and fits displa
   await expect(page.locator('#show-dialog')).toHaveClass(/celebration/);
   await expect(page.locator('#show-demo')).toBeVisible();
   await page.keyboard.press('Space');
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await page.keyboard.press('Enter');
   await expect(page.locator('#show-dialog')).not.toBeVisible();
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'))).claimed).toBe(false);
 });

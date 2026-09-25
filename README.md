@@ -36,8 +36,8 @@ Winning-spin timestamps and the selected hourly moment persist across refreshes.
 
 Click **Enter kiosk** for a simplified, fullscreen booth display. `?kiosk=1` opens the layout directly; browsers still require a click or F11 to enter fullscreen. **Exit kiosk** restores the full page. Escape can exit browser fullscreen; kiosk layout remains active until you exit it.
 
-- **Space** starts an available spin. Holding it does not repeat spins or skip the story/result.
-- **Enter** advances the story and closes the visitor’s result. Buttons also support mouse and touch.
+- **Space** starts an available spin, reveals the story’s result, and closes the result for the next visitor. Release and press again for each action; holding it does not skip steps.
+- **Enter** also advances the story and closes the result. Buttons support mouse and touch.
 - After a non-winning spin, kiosk mode thanks the visitor and invites a conversation; the host advances when ready. There is no timed dismissal or forced retry.
 - The normal hourly prize limit and 30-minute separation still apply. The public review build stays in demo mode.
 

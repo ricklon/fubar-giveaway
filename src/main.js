@@ -90,7 +90,7 @@ async function tellStory(event, isDemo) {
   $('#show-details').textContent = event.details;
   $('#show-demo').hidden = !isDemo;
   $('#show-next').textContent = 'Reveal the spin ↗';
-  $('#show-hint').textContent = 'Booth host: tell the story, then press Enter to reveal the result.';
+  $('#show-hint').textContent = 'Booth host: tell the story, then press Space or Enter to reveal the result.';
   const art = $('#show-art');
   art.replaceChildren();
   if (event.storyImage || event.image) {
@@ -197,7 +197,7 @@ async function thankVisitor(isDemo) {
   $('#show-details').textContent = 'You don’t have to win a prize to join the conversation.';
   $('#show-demo').hidden = !isDemo;
   $('#show-next').textContent = 'Ready for the next visitor';
-  $('#show-hint').textContent = 'Booth host: press Enter when you’re ready.';
+  $('#show-hint').textContent = 'Booth host: press Space or Enter when you’re ready.';
   showDialog.showModal();
   $('#show-title').focus();
   await waitForHost();
@@ -235,8 +235,7 @@ document.addEventListener('keydown', event => {
   if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   if ($('#staff-dialog').open) return;
   if (showDialog.open) {
-    // A held spin key must never reveal or dismiss a visitor’s result.
-    if (event.code === 'Space') { event.preventDefault(); return; }
+    // Both keys advance; repeated keydown events are ignored above.
     event.preventDefault();
     $('#show-next').click();
     return;
