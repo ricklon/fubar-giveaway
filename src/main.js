@@ -38,10 +38,13 @@ function puzzle(color = '#ed784e', dark = '#ba5031', light = '#ffa479') {
 const icons = [puzzle(), `<svg viewBox="0 0 180 180" aria-hidden="true"><path d="m90 25 19 41 45 5-33 31 9 45-40-22-40 22 8-45-33-31 46-5Z" fill="#b1c65f" stroke="#73853c" stroke-width="3"/><path d="m90 25 0 71 40 51-9-45 33-31-45-5Z" fill="#92aa47"/></svg>`, `<svg viewBox="0 0 180 180" aria-hidden="true"><rect x="35" y="56" width="110" height="88" rx="17" fill="#9298c8" stroke="#626898" stroke-width="3"/><path d="M90 56V34" stroke="#626898" stroke-width="7"/><circle cx="90" cy="29" r="9" fill="#bed376"/><rect x="49" y="72" width="82" height="41" rx="10" fill="#353e4c"/><circle cx="70" cy="92" r="7" fill="#d7ec8a"/><circle cx="110" cy="92" r="7" fill="#d7ec8a"/><path d="M73 128h34" stroke="#535979" stroke-width="5"/><path d="M23 84v33m134-33v33" stroke="#626898" stroke-width="10"/></svg>`];
 icons[0] = puzzleFront;
 let featuredPrizeId;
+let selectedPrizeId = null;
 function featurePrize(prize) {
   if (featuredPrizeId === prize.id) return;
   featuredPrizeId = prize.id;
-  icons[0] = prizePhoto(prize);
+  document.querySelectorAll('#prize-options button').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.prizeId === prize.id));
+  });
   $('.prize-detail h3').textContent = prize.name;
   $('.prize-detail p').textContent = prize.description;
   $('#hero-puzzle').innerHTML = prize.backImage
@@ -59,7 +62,21 @@ function featurePrize(prize) {
     });
   }
 }
-$('#prize-lineup').textContent = prizes.map(prize => prize.name).join(' · ');
+$('#prize-lineup').textContent = 'Select a prize to see its photo and details.';
+$('#prize-options').replaceChildren(...prizes.map(prize => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.prizeId = prize.id;
+  button.setAttribute('aria-pressed', 'false');
+  button.innerHTML = `${prizePhoto(prize)}<span>${prize.name}</span>`;
+  button.addEventListener('click', () => {
+    if (busy) return;
+    selectedPrizeId = prize.id;
+    $('#preview-prize').value = prize.id;
+    updateStatus();
+  });
+  return button;
+}));
 $('#preview-prize').replaceChildren(...prizes.map(prize => {
   const option = document.createElement('option');
   option.value = prize.id;
@@ -90,12 +107,19 @@ function updateStatus() {
   if (!busy) readHour();
   const next = state && nextPrize(state, prizeIds);
   const prize = prizeById(next);
-  if (!busy) featurePrize(prize);
+  if (!busy) {
+    featurePrize(prizeById(selectedPrizeId || next));
+    const spinPrize = demo ? prizeById(selectedPrizeId || next) : prize;
+    icons[0] = prizePhoto(spinPrize);
+    $('.machine-title p').textContent = `This spin: ${spinPrize.name}. Match three prize photos.`;
+    if (!$('.machine').classList.contains('winner')) reels[0].innerHTML = icons[0];
+  }
+  document.querySelectorAll('#prize-options button').forEach(button => { button.disabled = busy; });
   const gap = state?.lastWinAt != null && !state.claimed && state.winAt > Date.now();
   const seconds = gap ? Math.ceil((state.winAt - Date.now()) / 1000) : remaining(Date.now());
   $('#countdown-label').textContent = gap ? 'NEXT PRIZE OPENS IN' : 'NEXT HOUR STARTS IN';
   $('#countdown').textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
-  $('#prize-status').textContent = !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'All this hour’s prizes have found their people!' : gap ? `${prize.name} is next — the 30-minute gap is running` : `${prize.name} is up for grabs`;
+  $('#prize-status').textContent = demo ? `${prizeById(selectedPrizeId || next).name} selected · demo only` : !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'All this hour’s prizes have found their people!' : gap ? `${prize.name} is next — the 30-minute gap is running` : `${prize.name} is up for grabs`;
   if (!busy) {
     $('#spin').disabled = !demo && (!storageOk || state?.claimed);
     $('#try-again').disabled = $('#spin').disabled;
@@ -169,7 +193,7 @@ async function spin(forceWin = false) {
     readHour();
     if (!isDemo && (!storageOk || state.claimed)) return false;
     const spinAt = Date.now();
-    spinPrize = prizeById(forceWin ? $('#preview-prize').value : state && nextPrize(state, prizeIds));
+    spinPrize = prizeById(forceWin ? $('#preview-prize').value : isDemo && selectedPrizeId ? selectedPrizeId : state && nextPrize(state, prizeIds));
     const award = !isDemo && claimPrize(state, spinAt, prizeIds);
     won = forceWin || !!award;
     if (won && !isDemo) {
@@ -180,7 +204,10 @@ async function spin(forceWin = false) {
   };
   const allowed = navigator.locks ? await navigator.locks.request(storageKey, claim) : claim();
   if (!allowed) { busy = false; updateStatus(); return; }
+  if (isDemo) selectedPrizeId = spinPrize.id;
   featurePrize(spinPrize);
+  icons[0] = prizePhoto(spinPrize);
+  document.querySelectorAll('#prize-options button').forEach(button => { button.disabled = true; });
   $('.machine').classList.remove('winner');
   $('#event-invitation').hidden = true;
   $('#result').textContent = '';

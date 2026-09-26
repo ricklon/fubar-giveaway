@@ -91,3 +91,29 @@ test('an existing puzzle win opens the kit after thirty minutes and survives ref
   expect(saved.claimedPrizes).toEqual(['puzzle', 'figure']);
   expect(saved.lastWinAt).toBe(hourStart + 40 * 60_000);
 });
+
+
+test('both prizes are visible before a spin and browsing preserves the live schedule', async ({ page }) => {
+  await page.goto('/?kiosk=1');
+  const options = page.getByRole('group', { name: 'Prizes you could win' });
+  await expect(options.getByRole('button', { name: /FUBAR Puzzle/ })).toBeVisible();
+  await expect(options.getByRole('button', { name: /Dummy 13 kit/ })).toBeVisible();
+  const before = await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'));
+  await options.getByRole('button', { name: /Dummy 13 kit/ }).click();
+  await expect(page.locator('.prize-detail h3')).toHaveText('Dummy 13 kit');
+  await expect(page.locator('#hero-puzzle img')).toHaveAttribute('src', /poseable-figure.jpg$/);
+  await expect(page.locator('.machine-title p')).toContainText('This spin: FUBAR Puzzle');
+  await expect(options.getByRole('button', { name: /Dummy 13 kit/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'))).toBe(before);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  expect(await page.locator('.prize-card').evaluate(card => card.querySelector('#countdown').getBoundingClientRect().bottom <= card.getBoundingClientRect().bottom)).toBe(true);
+  await page.screenshot({ path: '/tmp/fubar-prize-options.png', fullPage: true });
+  await page.locator('#staff-open').click();
+  await page.locator('#demo-mode').check();
+  await page.getByRole('button', { name: 'Close controls' }).click();
+  await expect(page.locator('.machine-title p')).toContainText('This spin: Dummy 13 kit');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(options.getByRole('button', { name: /Dummy 13 kit/ })).toBeVisible();
+  await expect(options.getByRole('button', { name: /FUBAR Puzzle/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

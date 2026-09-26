@@ -18,3 +18,8 @@
 .prize-photos{width:100%;min-width:0}.prize-photos.single-prize{grid-template-columns:minmax(0,1fr)}
 
 .show-copy .spin-button:hover{transform:none}
+
+.prize-options{display:flex;gap:10px;margin:0 0 18px;overflow-x:auto;padding:4px}.prize-options button{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:8px;background:#343e2f;border:2px solid #68765b;border-radius:8px;color:#fff;text-align:left;font-size:13px;font-weight:700}.prize-options button[aria-pressed="true"]{border-color:var(--green);background:#465936}.prize-options button:hover{background:#526841}.prize-options img{width:60px;height:64px;object-fit:contain;background:#f6f4ed;border-radius:4px}.prize-options button:disabled{cursor:wait}.kiosk .prize-options{margin-bottom:12px}.kiosk .reel{height:clamp(110px,21vh,260px)}
+
+.prize-options-heading{font-size:11px;letter-spacing:1.5px;color:var(--green);margin:0 0 4px;font-weight:700}
+#hero-puzzle{position:absolute;inset:0;min-height:0}.featured-photo{min-height:0}.featured-photo img{min-height:0;max-height:100%}
