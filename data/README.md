@@ -30,3 +30,7 @@ Organizer-supplied album: https://photos.app.goo.gl/GA9KqA7q9TyFYnbA6 (titled â€
 - `public/events/maker-fest-2025-robotics.jpg`: visitor holding a controller beside the arena; robotics story image.
 
 Captions identify these as 2025 photos, separate from the upcoming 2026 event details. People are not named or assigned unverified roles. Existing poster and trophy assets remain available.
+
+## Dummy 13 kit giveaway
+
+- `PXL_20260925_231219977.jpg` â†’ `public/prizes/poseable-figure.jpg`: organizer-supplied photo of a yellow and blue assembled figure beside bagged parts. Prize name supplied by the organizer: **Dummy 13 kit**. Copied unchanged, displayed without cropping. Used for the featured prize, winning reels, and celebration.

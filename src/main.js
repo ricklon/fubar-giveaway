@@ -1,5 +1,10 @@
-import { restoreHour, canWin, remaining } from './drawing.js';
+import { restoreDrawing, nextPrize, claimPrize, remaining } from './drawing.js';
 import { events } from './events.js';
+import { prizes } from './prizes.js';
+const prizeIds = prizes.map(prize => prize.id);
+const prizeById = id => prizes.find(prize => prize.id === id) || prizes[0];
+const asset = path => `${import.meta.env.BASE_URL}${path}`;
+const prizePhoto = prize => `<img class="puzzle-photo" src="${asset(prize.image)}" alt="${prize.imageAlt}" />`;
 const $ = (selector) => document.querySelector(selector);
 const puzzlePhoto = side => `${import.meta.env.BASE_URL}puzzle/${side}.jpg`;
 const puzzleFront = `<img class="puzzle-photo" src="${puzzlePhoto('front')}" alt="FUBAR puzzle tray with colorful hexagonal pieces" />`;
@@ -32,18 +37,35 @@ function puzzle(color = '#ed784e', dark = '#ba5031', light = '#ffa479') {
 }
 const icons = [puzzle(), `<svg viewBox="0 0 180 180" aria-hidden="true"><path d="m90 25 19 41 45 5-33 31 9 45-40-22-40 22 8-45-33-31 46-5Z" fill="#b1c65f" stroke="#73853c" stroke-width="3"/><path d="m90 25 0 71 40 51-9-45 33-31-45-5Z" fill="#92aa47"/></svg>`, `<svg viewBox="0 0 180 180" aria-hidden="true"><rect x="35" y="56" width="110" height="88" rx="17" fill="#9298c8" stroke="#626898" stroke-width="3"/><path d="M90 56V34" stroke="#626898" stroke-width="7"/><circle cx="90" cy="29" r="9" fill="#bed376"/><rect x="49" y="72" width="82" height="41" rx="10" fill="#353e4c"/><circle cx="70" cy="92" r="7" fill="#d7ec8a"/><circle cx="110" cy="92" r="7" fill="#d7ec8a"/><path d="M73 128h34" stroke="#535979" stroke-width="5"/><path d="M23 84v33m134-33v33" stroke="#626898" stroke-width="10"/></svg>`];
 icons[0] = puzzleFront;
-let puzzleSide = 'front';
-$('#hero-puzzle').innerHTML = `<button id="flip-puzzle" class="flip-puzzle" aria-label="Show the back of the puzzle">${puzzleFront}<span>See the back ↻</span></button>`;
-$('#flip-puzzle').addEventListener('click', () => {
-  puzzleSide = puzzleSide === 'front' ? 'back' : 'front';
-  const button = $('#flip-puzzle');
-  const img = button.querySelector('img');
-  img.src = puzzlePhoto(puzzleSide);
-  img.alt = puzzleSide === 'front' ? 'FUBAR puzzle tray with colorful hexagonal pieces' : 'Blue back of the FUBAR puzzle with a yellow printed QR code';
-  const otherSide = puzzleSide === 'front' ? 'back' : 'front';
-  button.setAttribute('aria-label', `Show the ${otherSide} of the puzzle`);
-  button.querySelector('span').textContent = `See the ${otherSide} ↻`;
-});
+let featuredPrizeId;
+function featurePrize(prize) {
+  if (featuredPrizeId === prize.id) return;
+  featuredPrizeId = prize.id;
+  icons[0] = prizePhoto(prize);
+  $('.prize-detail h3').textContent = prize.name;
+  $('.prize-detail p').textContent = prize.description;
+  $('#hero-puzzle').innerHTML = prize.backImage
+    ? `<button id="flip-puzzle" class="flip-puzzle" aria-label="Show the back of the puzzle">${prizePhoto(prize)}<span>See the back ↻</span></button>`
+    : `<div class="featured-photo">${prizePhoto(prize)}</div>`;
+  const flip = $('#flip-puzzle');
+  if (flip) {
+    let back = false;
+    flip.addEventListener('click', () => {
+      back = !back;
+      flip.querySelector('img').src = asset(back ? prize.backImage : prize.image);
+      flip.querySelector('img').alt = back ? prize.backImageAlt : prize.imageAlt;
+      flip.setAttribute('aria-label', `Show the ${back ? 'front' : 'back'} of the puzzle`);
+      flip.querySelector('span').textContent = `See the ${back ? 'front' : 'back'} ↻`;
+    });
+  }
+}
+$('#prize-lineup').textContent = prizes.map(prize => prize.name).join(' · ');
+$('#preview-prize').replaceChildren(...prizes.map(prize => {
+  const option = document.createElement('option');
+  option.value = prize.id;
+  option.textContent = prize.name;
+  return option;
+}));
 const reels = [0,1,2].map(i => $(`#reel-${i}`));
 reels.forEach((reel, i) => { reel.innerHTML = icons[i]; });
 const storageKey = 'fubar-hourly-drawing-v1';
@@ -60,19 +82,24 @@ if (reviewMode) {
 function readHour() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    state = restoreHour(saved, Date.now(), () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
+    state = restoreDrawing(saved, Date.now(), prizeIds, () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
     if (JSON.stringify(saved) !== JSON.stringify(state)) localStorage.setItem(storageKey, JSON.stringify(state));
   } catch { storageOk = false; }
 }
 function updateStatus() {
   if (!busy) readHour();
-  const seconds = remaining(Date.now());
+  const next = state && nextPrize(state, prizeIds);
+  const prize = prizeById(next);
+  if (!busy) featurePrize(prize);
+  const gap = state?.lastWinAt != null && !state.claimed && state.winAt > Date.now();
+  const seconds = gap ? Math.ceil((state.winAt - Date.now()) / 1000) : remaining(Date.now());
+  $('#countdown-label').textContent = gap ? 'NEXT PRIZE OPENS IN' : 'NEXT HOUR STARTS IN';
   $('#countdown').textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
-  $('#prize-status').textContent = !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'This hour’s puzzle has found its person!' : 'This hour’s puzzle is up for grabs';
+  $('#prize-status').textContent = !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'All this hour’s prizes have found their people!' : gap ? `${prize.name} is next — the 30-minute gap is running` : `${prize.name} is up for grabs`;
   if (!busy) {
     $('#spin').disabled = !demo && (!storageOk || state?.claimed);
     $('#try-again').disabled = $('#spin').disabled;
-    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'NEXT PUZZLE, NEXT HOUR' : 'GIVE IT A SPIN';
+    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'MORE PRIZES NEXT HOUR' : 'GIVE IT A SPIN';
   }
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -111,14 +138,14 @@ async function tellStory(event, isDemo) {
   await waitForHost();
   showDialog.close();
 }
-async function celebrate(isDemo) {
+async function celebrate(isDemo, prize) {
   showDialog.classList.add('celebration');
-  $('#show-kicker').textContent = 'THIS HOUR’S PUZZLE WINNER';
+  $('#show-kicker').textContent = `${prize.name.toUpperCase()} WINNER`;
   $('#show-title').textContent = isDemo ? 'YEAH! That’s a winning spin!' : 'YEAH! You got the prize!';
-  $('#show-description').textContent = isDemo ? 'This is the celebration your winner will see.' : 'This hour’s FUBAR puzzle is yours. Let’s get that prize into your hands!';
+  $('#show-description').textContent = isDemo ? 'This is the celebration your winner will see.' : `The ${prize.name} is yours. Let’s get that prize into your hands!`;
   $('#show-details').textContent = 'Thanks for spending a little of your day with us.';
   $('#show-demo').hidden = !isDemo;
-  $('#show-art').innerHTML = `<div class="prize-photos"><figure>${puzzleFront}<figcaption>Your FUBAR puzzle</figcaption></figure><figure><img src="${puzzlePhoto('back')}" alt="Back of the puzzle with a printed QR code" /><figcaption>A little making on both sides.</figcaption></figure></div>`;
+  $('#show-art').innerHTML = `<div class="prize-photos${prize.backImage ? '' : ' single-prize'}"><figure>${prizePhoto(prize)}<figcaption>Your ${prize.name}</figcaption></figure>${prize.backImage ? `<figure><img src="${asset(prize.backImage)}" alt="${prize.backImageAlt}" /><figcaption>A little making on both sides.</figcaption></figure>` : ''}</div>`;
   $('#show-next').textContent = isDemo ? 'Finish preview ↗' : 'Prize handed over · next visitor ↗';
   $('#show-hint').textContent = 'The celebration stays here until the booth crew is ready.';
   $('#confetti').replaceChildren(...Array.from({ length: 65 }, (_, i) => {
@@ -137,20 +164,23 @@ async function spin(forceWin = false) {
   busy = true;
   const isDemo = demo || forceWin;
   let won = false;
+  let spinPrize;
   const claim = () => {
     readHour();
     if (!isDemo && (!storageOk || state.claimed)) return false;
     const spinAt = Date.now();
-    won = forceWin || (!isDemo && canWin(state, spinAt));
+    spinPrize = prizeById(forceWin ? $('#preview-prize').value : state && nextPrize(state, prizeIds));
+    const award = !isDemo && claimPrize(state, spinAt, prizeIds);
+    won = forceWin || !!award;
     if (won && !isDemo) {
-      state.claimed = true;
-      state.lastWinAt = spinAt;
+      state = award.state;
       try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { storageOk = false; return false; }
     }
     return true;
   };
   const allowed = navigator.locks ? await navigator.locks.request(storageKey, claim) : claim();
   if (!allowed) { busy = false; updateStatus(); return; }
+  featurePrize(spinPrize);
   $('.machine').classList.remove('winner');
   $('#event-invitation').hidden = true;
   $('#result').textContent = '';
@@ -167,13 +197,13 @@ async function spin(forceWin = false) {
   for (let i=0; i<3; i++) { reels[i].classList.remove('spinning'); reels[i].innerHTML = icons[outcome[i]]; await pause(230); }
   clearInterval(ticker);
   if (won) $('.machine').classList.add('winner');
-  $('#result').textContent = won ? isDemo ? 'That’s a winning match! Demo only — no prize awarded.' : 'You won this hour’s puzzle! We’ll help you collect it.' : isDemo ? 'Practice spin complete. Here’s what visitors see after a non-winning spin.' : 'No match this time. Thanks for taking a turn—come talk puzzles with us.';
+  $('#result').textContent = won ? isDemo ? 'That’s a winning match! Demo only — no prize awarded.' : `You won the ${spinPrize.name}! We’ll help you collect it.` : isDemo ? 'Practice spin complete. Here’s what visitors see after a non-winning spin.' : 'No match this time. Thanks for taking a turn—come talk making with us.';
   if (!won) {
     showEvent(storyIndex);
     $('#result').textContent += ` Check out ${events[displayedEvent].title} below.`;
   }
   $('#spin-note').textContent = 'No signup. No purchase. Just say hello.';
-  if (won) await celebrate(isDemo);
+  if (won) await celebrate(isDemo, spinPrize);
   else if (document.body.classList.contains('kiosk')) await thankVisitor(isDemo);
   busy = false;
   updateStatus();
@@ -193,7 +223,7 @@ setInterval(updateStatus, 1000);
 async function thankVisitor(isDemo) {
   $('#show-kicker').textContent = 'THANKS FOR TAKING A TURN';
   $('#show-title').textContent = 'No match this time. Glad you stopped by.';
-  $('#show-description').textContent = 'Want to see how the puzzle works? Ask us about the pieces, the printer, or something you’d like to make.';
+  $('#show-description').textContent = 'Want to see what we make? Ask us about the prizes, the printer, or something you’d like to make.';
   $('#show-details').textContent = 'You don’t have to win a prize to join the conversation.';
   $('#show-demo').hidden = !isDemo;
   $('#show-next').textContent = 'Ready for the next visitor';

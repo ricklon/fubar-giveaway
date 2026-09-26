@@ -1,12 +1,63 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHour, canWin, remaining } from '../src/drawing.js';
+import { createHour, canWin, remaining, restoreDrawing, nextPrize, claimPrize, MIN_WIN_GAP } from '../src/drawing.js';
 test('award only at or after the chosen time, once in the matching hour', () => {
   const state = createHour(3_600_000, () => .5);
   assert.equal(canWin(state, 5_399_999), false);
   assert.equal(canWin(state, 5_400_000), true);
   assert.equal(canWin({...state, claimed:true}, 5_400_001), false);
   assert.equal(canWin(state, 7_200_000), false);
+});
+
+const prizeIds = ['puzzle', 'figure'];
+test('puzzle and kit alternate with thirty minutes between actual wins', () => {
+  const initial = restoreDrawing(null, 0, prizeIds, () => 0);
+  const puzzle = claimPrize(initial, 5 * 60_000, prizeIds);
+  assert.equal(puzzle.prizeId, 'puzzle');
+  const restored = restoreDrawing(JSON.parse(JSON.stringify(puzzle.state)), 10 * 60_000, prizeIds);
+  assert.equal(nextPrize(restored, prizeIds), 'figure');
+  assert.equal(claimPrize(restored, 35 * 60_000 - 1, prizeIds), null);
+  const kit = claimPrize(restored, 35 * 60_000, prizeIds);
+  assert.equal(kit.prizeId, 'figure');
+  assert.equal(kit.state.claimed, true);
+  assert.equal(claimPrize(kit.state, 59 * 60_000, prizeIds), null);
+  const nextHour = restoreDrawing(kit.state, 60 * 60_000, prizeIds);
+  assert.equal(nextPrize(nextHour, prizeIds), 'puzzle');
+  assert.equal(claimPrize(nextHour, 65 * 60_000 - 1, prizeIds), null);
+  assert.equal(claimPrize(nextHour, 65 * 60_000, prizeIds).prizeId, 'puzzle');
+});
+
+test('late puzzle wins delay the kit into the next hour, including after refresh', () => {
+  const initial = restoreDrawing(null, 0, prizeIds, () => 0);
+  const puzzle = claimPrize(initial, 50 * 60_000, prizeIds);
+  const nextHour = restoreDrawing(puzzle.state, 60 * 60_000, prizeIds);
+  assert.equal(nextPrize(nextHour, prizeIds), 'figure');
+  assert.equal(claimPrize(nextHour, 80 * 60_000 - 1, prizeIds), null);
+  assert.equal(claimPrize(nextHour, 80 * 60_000, prizeIds).prizeId, 'figure');
+});
+
+test('existing puzzle claims migrate without awarding it again or shortening the gap', () => {
+  const saved = { hour: 0, winAt: 0, claimed: true, lastWinAt: 10 * 60_000 };
+  const state = restoreDrawing(saved, 15 * 60_000, prizeIds);
+  assert.deepEqual(state.claimedPrizes, ['puzzle']);
+  assert.equal(nextPrize(state, prizeIds), 'figure');
+  assert.equal(state.winAt, saved.lastWinAt + MIN_WIN_GAP);
+  const legacy = restoreDrawing({ hour: 0, winAt: 0, claimed: true }, 60 * 60_000, prizeIds);
+  assert.equal(legacy.winAt, 90 * 60_000 - 1);
+  assert.equal(nextPrize(legacy, prizeIds), 'figure');
+});
+
+test('adding a weekend prize preserves claims and includes it in the rotation', () => {
+  let state = restoreDrawing(null, 0, prizeIds, () => 0);
+  state = claimPrize(state, 0, prizeIds).state;
+  state = claimPrize(state, MIN_WIN_GAP, prizeIds).state;
+  const expanded = [...prizeIds, 'weekend-prize'];
+  state = restoreDrawing(state, MIN_WIN_GAP + 1, expanded);
+  assert.deepEqual(state.claimedPrizes, prizeIds);
+  assert.equal(nextPrize(state, expanded), 'weekend-prize');
+  assert.equal(canWin(state, MIN_WIN_GAP + 1), false);
+  state = restoreDrawing(state, 2 * MIN_WIN_GAP, expanded);
+  assert.equal(claimPrize(state, 2 * MIN_WIN_GAP, expanded).prizeId, 'weekend-prize');
 });
 test('a new hour resets availability and countdown', () => {
   const state = createHour(7_200_000, () => 0);

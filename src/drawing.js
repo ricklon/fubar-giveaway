@@ -22,3 +22,36 @@ export function canWin(state, now) {
   return state.hour === hourKey(now) && !state.claimed && now >= state.winAt && (state.lastWinAt === null || now >= state.lastWinAt + MIN_WIN_GAP);
 }
 export function remaining(now) { return Math.ceil(((hourKey(now) + 1) * HOUR - now) / 1000); }
+
+// Retain the v1 fields/storage key so existing puzzle claims survive upgrades.
+export function restoreDrawing(saved, now, prizeIds, random = Math.random) {
+  const base = restoreHour(saved, now, random);
+  const sameHour = saved?.hour === hourKey(now);
+  const claimedPrizes = sameHour
+    ? [...new Set(Array.isArray(saved.claimedPrizes) ? saved.claimedPrizes : saved.claimed ? ['puzzle'] : [])]
+    : [];
+  const lastPrizeId = saved?.lastPrizeId ?? (base.lastWinAt !== null ? 'puzzle' : null);
+  // After the first award, the next prize opens exactly one minimum gap later.
+  const winAt = base.lastWinAt === null ? base.winAt : Math.max(base.hour * HOUR, base.lastWinAt + MIN_WIN_GAP);
+  return { ...base, winAt, claimedPrizes, lastPrizeId, claimed: prizeIds.every(id => claimedPrizes.includes(id)) };
+}
+
+export function nextPrize(state, prizeIds) {
+  const start = (prizeIds.indexOf(state.lastPrizeId) + 1) % prizeIds.length;
+  for (let offset = 0; offset < prizeIds.length; offset++) {
+    const id = prizeIds[(start + offset) % prizeIds.length];
+    if (!state.claimedPrizes.includes(id)) return id;
+  }
+  return null;
+}
+
+export function claimPrize(state, now, prizeIds) {
+  const prizeId = nextPrize(state, prizeIds);
+  if (!prizeId || !canWin(state, now)) return null;
+  const claimedPrizes = [...state.claimedPrizes, prizeId];
+  return {
+    prizeId,
+    state: { ...state, claimedPrizes, lastPrizeId: prizeId, lastWinAt: now,
+      winAt: now + MIN_WIN_GAP, claimed: prizeIds.every(id => claimedPrizes.includes(id)) },
+  };
+}
