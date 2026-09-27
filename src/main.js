@@ -131,19 +131,42 @@ const roundLength = minutes => minutes === 30 ? 'every half hour' : minutes === 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const showDialog = $('#show-dialog');
 showDialog.addEventListener('cancel', event => event.preventDefault());
-function waitForHost() {
-  return new Promise(resolve => $('#show-next').addEventListener('click', resolve, { once: true }));
+// Ignore dismissals briefly so an eager extra Space press can't skip the screen.
+const dismissDelay = 1200;
+// After a non-win, hold the landed reels on screen before the story opens.
+const resultHold = 2500;
+// An unattended story returns to the machine on its own.
+const storyIdle = 30000;
+function openShow(idleMs) {
+  const next = $('#show-next');
+  next.disabled = true;
+  showDialog.showModal();
+  $('#show-title').focus();
+  return new Promise(resolve => {
+    const ready = setTimeout(() => { next.disabled = false; }, dismissDelay);
+    const idle = idleMs && setTimeout(() => finish('idle'), idleMs);
+    const onClick = () => finish('advance');
+    function finish(how) {
+      clearTimeout(ready);
+      clearTimeout(idle);
+      next.removeEventListener('click', onClick);
+      next.disabled = false;
+      showDialog.close();
+      resolve(how);
+    }
+    next.addEventListener('click', onClick);
+  });
 }
 async function tellStory(event, isDemo) {
   showDialog.classList.remove('celebration');
   $('#confetti').replaceChildren();
-  $('#show-kicker').textContent = 'A STORY FROM THE BOOTH';
+  $('#show-kicker').textContent = 'NO MATCH THIS TIME · A STORY FROM THE BOOTH';
   $('#show-title').textContent = event.title;
   $('#show-description').textContent = event.description;
   $('#show-details').textContent = event.details;
   $('#show-demo').hidden = !isDemo;
-  $('#show-next').textContent = 'Reveal the spin ↗';
-  $('#show-hint').textContent = 'Booth host: tell the story, then press Space or Enter to reveal the result.';
+  $('#show-next').textContent = 'Spin again ↗';
+  $('#show-hint').textContent = 'Press Space to spin again. Ask us about anything you see here.';
   const art = $('#show-art');
   art.replaceChildren();
   if (event.storyImage || event.image) {
@@ -159,10 +182,7 @@ async function tellStory(event, isDemo) {
       art.append(caption);
     }
   } else art.innerHTML = puzzleFront;
-  showDialog.showModal();
-  $('#show-title').focus();
-  await waitForHost();
-  showDialog.close();
+  return openShow(storyIdle);
 }
 async function celebrate(isDemo, prize) {
   showDialog.classList.add('celebration');
@@ -179,10 +199,7 @@ async function celebrate(isDemo, prize) {
     piece.style.cssText = `left:${Math.random()*100}%;--delay:${Math.random()*2}s;--drift:${Math.random()*200-100}px;background:${['#d5ef79','#ff905a','#8dc5ff','#ed89c7'][i%4]}`;
     return piece;
   }));
-  showDialog.showModal();
-  $('#show-title').focus();
-  await waitForHost();
-  showDialog.close();
+  await openShow();
   $('#confetti').replaceChildren();
 }
 async function spin(forceWin = false) {
@@ -221,7 +238,6 @@ async function spin(forceWin = false) {
   await pause(matchMedia('(prefers-reduced-motion: reduce)').matches ? 150 : 1300);
   const storyIndex = nextEvent;
   nextEvent = (nextEvent + 1) % events.length;
-  await tellStory(events[storyIndex], isDemo);
   const outcome = won ? [0,0,0] : [Math.floor(Math.random()*3), Math.floor(Math.random()*3), 1 + Math.floor(Math.random()*2)];
   for (let i=0; i<3; i++) { reels[i].classList.remove('spinning'); reels[i].innerHTML = icons[outcome[i]]; await pause(230); }
   clearInterval(ticker);
@@ -232,11 +248,14 @@ async function spin(forceWin = false) {
     $('#result').textContent += ` Check out ${events[displayedEvent].title} below.`;
   }
   $('#spin-note').textContent = 'No signup. No purchase. Just say hello.';
-  if (won) await celebrate(isDemo, spinPrize);
-  else if (document.body.classList.contains('kiosk')) await thankVisitor(isDemo);
+  let story;
+  if (won) { await pause(600); await celebrate(isDemo, spinPrize); }
+  else if (document.body.classList.contains('kiosk')) { await pause(resultHold); story = await tellStory(events[storyIndex], isDemo); }
   busy = false;
   updateStatus();
   $('#spin').focus({ preventScroll: true });
+  // Space on the story is the next visitor's spin.
+  if (story === 'advance' && !$('#spin').disabled) spin();
 }
 $('#spin').addEventListener('click', () => spin());
 $('#try-again').addEventListener('click', () => { $('#spin').focus(); spin(); });
@@ -249,19 +268,6 @@ window.addEventListener('storage', updateStatus);
 updateStatus();
 setInterval(updateStatus, 1000);
 
-async function thankVisitor(isDemo) {
-  $('#show-kicker').textContent = 'THANKS FOR TAKING A TURN';
-  $('#show-title').textContent = 'No match this time. Glad you stopped by.';
-  $('#show-description').textContent = 'Want to see what we make? Ask us about the prizes, the printer, or something you’d like to make.';
-  $('#show-details').textContent = 'You don’t have to win a prize to join the conversation.';
-  $('#show-demo').hidden = !isDemo;
-  $('#show-next').textContent = 'Ready for the next visitor';
-  $('#show-hint').textContent = 'Booth host: press Space or Enter when you’re ready.';
-  showDialog.showModal();
-  $('#show-title').focus();
-  await waitForHost();
-  showDialog.close();
-}
 
 function setKiosk(enabled) {
   document.body.classList.toggle('kiosk', enabled);

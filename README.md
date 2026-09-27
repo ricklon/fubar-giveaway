@@ -20,7 +20,7 @@ The build includes the selected poster, full flyer PDF, and trophy photo. Source
 
 On this laptop, run `npm run booth` and open **http://localhost:4174**. Leave the terminal running; Ctrl+C stops it. This builds the app and serves its bundled images locally, so the booth experience works without venue internet once dependencies are installed. External promotional websites still need internet. Keep the same URL and browser for prize round tracking. Port 4174 is fixed to avoid silently moving to another origin; if occupied, stop the previous booth server before restarting.
 
-Press F11 in the browser for a full-screen booth display. Each spin opens a large story/image panel. The booth host can talk for as long as needed, then press **Reveal the spin**. A non-winning result shows that promotion; a winner gets a confetti celebration that stays visible until the host presses **Prize handed over · next visitor**. The handover button dismisses the screen; the prize is already counted when the spin begins. A demo winning spin follows the complete flow without consuming a prize. No microphone, speech synthesis, or auto-playing audio is used.
+Press F11 in the browser for a full-screen booth display. Each spin reveals its result on the reels with no click needed. A winner gets a confetti celebration right after the reels land, and it stays visible until the host presses **Prize handed over · next visitor**. In kiosk mode, a non-winning result stays on the reels for a moment before a large story/image panel opens. Pressing Space on that panel starts the next visitor's spin, and if nobody presses anything it returns to the machine after 30 seconds. The handover button dismisses the screen; the prize is already counted when the spin begins. A demo winning spin follows the complete flow without consuming a prize. No microphone, speech synthesis, or auto-playing audio is used.
 
 ## Member review on GitHub Pages
 
@@ -44,9 +44,9 @@ Add the supplied photo under `public/prizes/`, then add an entry to `src/prizes.
 
 Click **Enter kiosk** for a simplified, fullscreen booth display. `?kiosk=1` opens the layout directly; browsers still require a click or F11 to enter fullscreen. **Exit kiosk** restores the full page. Escape can exit browser fullscreen; kiosk layout remains active until you exit it.
 
-- **Space** starts an available spin, reveals the story’s result, and closes the result for the next visitor. Release and press again for each action; holding it does not skip steps.
-- **Enter** also advances the story and closes the result. Buttons support mouse and touch.
-- After a non-winning spin, kiosk mode thanks the visitor and invites a conversation; the host advances when ready. There is no timed dismissal or forced retry.
+- **Space** is the only button needed: it spins, and on the story panel after a non-win it spins again. After a win, it closes the celebration once the prize is handed over. Each screen ignores presses for its first second, and holding Space does not repeat.
+- **Enter** does the same as Space on the story and celebration screens. Buttons support mouse and touch.
+- After a non-winning spin, kiosk mode shows a booth story that invites a conversation.
 - One prize per round still applies. The public review build stays in demo mode.
 
 Before the event, set the booth computer not to sleep during the session and rehearse at the actual screen distance. Keep a physical puzzle available to talk about, and introduce the volunteer hosting the booth. Short stories from the members who printed or designed a piece will be more useful than more promotional copy.

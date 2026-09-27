@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('kiosk supports keyboard story and win, ignores held Space, and fits display', async ({ page }) => {
+test('kiosk is one-button: Space reveals the result, then Space spins again', async ({ page }) => {
+  await page.clock.install();
   await page.goto('/');
   await page.getByRole('button', { name: 'Enter kiosk', exact: true }).click();
   await expect(page.locator('body')).toHaveClass('kiosk');
@@ -11,22 +12,32 @@ test('kiosk supports keyboard story and win, ignores held Space, and fits displa
   await page.getByRole('button', { name: 'Close controls' }).click();
   await page.locator('#spin').focus();
   await page.keyboard.down('Space');
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await expect(page.locator('#show-title')).toHaveText('Sussex County Maker Fest');
-  await page.keyboard.down('Space');
+  // The result lands on the reels with no dialog in the way.
+  await expect(page.locator('#result')).toContainText('Practice spin complete');
+  await expect(page.locator('#show-dialog')).not.toBeVisible();
   await page.keyboard.up('Space');
+  await expect(page.locator('#show-dialog')).toBeVisible();
+  await expect(page.locator('#show-kicker')).toHaveText('NO MATCH THIS TIME · A STORY FROM THE BOOTH');
   await expect(page.locator('#show-title')).toHaveText('Sussex County Maker Fest');
+  // An immediate extra press can't skip the story.
   await page.keyboard.press('Space');
-  await expect(page.locator('#show-title')).toHaveText('No match this time. Glad you stopped by.');
+  await expect(page.locator('#show-dialog')).toBeVisible();
+  await expect(page.locator('#show-next')).toBeEnabled();
   await page.keyboard.press('Space');
+  await expect(page.locator('#show-dialog')).not.toBeVisible();
+  await expect(page.locator('#spin span').first()).toHaveText('SPINNING…');
+  await expect(page.locator('#show-title')).not.toHaveText('Sussex County Maker Fest');
+  await expect(page.locator('#show-dialog')).toBeVisible();
+  await expect(page.locator('#show-next')).toBeEnabled();
+  // Left alone, the story returns to the machine.
+  await page.clock.runFor(30_000);
   await expect(page.locator('#show-dialog')).not.toBeVisible();
   await expect(page.locator('#spin')).toBeEnabled();
   await page.locator('#staff-open').click();
   await page.locator('#demo-win').click();
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await page.keyboard.press('Enter');
   await expect(page.locator('#show-dialog')).toHaveClass(/celebration/);
   await expect(page.locator('#show-demo')).toBeVisible();
+  await expect(page.locator('#show-next')).toBeEnabled();
   await page.keyboard.press('Space');
   await expect(page.locator('#show-dialog')).not.toBeVisible();
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'))).claimed).toBe(false);
@@ -48,8 +59,6 @@ test('Dummy 13 kit preview uses its photo without consuming a prize', async ({ p
   await page.locator('#staff-open').click();
   await page.locator('#preview-prize').selectOption('figure');
   await page.locator('#demo-win').click();
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await page.locator('#show-next').click();
   await expect(page.locator('#show-kicker')).toHaveText('DUMMY 13 KIT WINNER');
   await expect(page.locator('#show-art img')).toHaveAttribute('src', /prizes\/poseable-figure.jpg$/);
   expect(await page.locator('#show-art img').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
@@ -73,15 +82,11 @@ test('a round hides one prize at a random moment and survives refresh', async ({
   await expect(page.locator('#countdown')).toHaveText('25:00');
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.locator('#spin').click();
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await page.locator('#show-next').click();
-  await expect(page.locator('#show-title')).toHaveText('No match this time. Glad you stopped by.');
-  await page.locator('#show-next').click();
+  await expect(page.locator('#result')).toContainText('No match this time');
+  await expect(page.locator('#show-kicker')).toHaveText('NO MATCH THIS TIME · A STORY FROM THE BOOTH');
   await page.clock.setFixedTime(roundStart + 12 * 60_000);
   await page.reload();
   await page.locator('#spin').click();
-  await expect(page.locator('#show-dialog')).toBeVisible();
-  await page.locator('#show-next').click();
   await expect(page.locator('#show-kicker')).toHaveText('DUMMY 13 KIT WINNER');
   await expect(page.locator('#show-demo')).toBeHidden();
   await page.locator('#show-next').click();
