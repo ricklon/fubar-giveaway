@@ -4,7 +4,7 @@ test('kiosk supports keyboard story and win, ignores held Space, and fits displa
   await page.goto('/');
   await page.getByRole('button', { name: 'Enter kiosk', exact: true }).click();
   await expect(page.locator('body')).toHaveClass('kiosk');
-  expect(await page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.locator('#staff-open').click();
   await page.locator('#demo-mode').check();
@@ -29,7 +29,7 @@ test('kiosk supports keyboard story and win, ignores held Space, and fits displa
   await expect(page.locator('#show-demo')).toBeVisible();
   await page.keyboard.press('Space');
   await expect(page.locator('#show-dialog')).not.toBeVisible();
-  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'))).claimed).toBe(false);
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'))).claimed).toBe(false);
 });
 
 test('kiosk fits a 1080p display and preserves reduced motion', async ({ page }) => {
@@ -44,7 +44,7 @@ test('kiosk fits a 1080p display and preserves reduced motion', async ({ page })
 test('Dummy 13 kit preview uses its photo without consuming a prize', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  const before = await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'));
+  const before = await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'));
   await page.locator('#staff-open').click();
   await page.locator('#preview-prize').selectOption('figure');
   await page.locator('#demo-win').click();
@@ -57,27 +57,27 @@ test('Dummy 13 kit preview uses its photo without consuming a prize', async ({ p
   await expect(page.locator('#show-demo')).toBeVisible();
   await page.screenshot({ path: '/tmp/fubar-dummy13-preview.png' });
   await page.locator('#show-next').click();
-  expect(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'))).toBe(before);
+  expect(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'))).toBe(before);
 });
 
-test('an existing puzzle win opens the kit after thirty minutes and survives refresh', async ({ page }) => {
-  const hourStart = Date.UTC(2026, 8, 25, 12);
-  await page.clock.setFixedTime(hourStart + 20 * 60_000);
+test('a round hides one prize at a random moment and survives refresh', async ({ page }) => {
+  const roundStart = Date.UTC(2026, 9, 3, 14);
+  await page.clock.setFixedTime(roundStart + 5 * 60_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/?kiosk=1');
-  await page.evaluate(({ hourStart }) => localStorage.setItem('fubar-hourly-drawing-v1', JSON.stringify({
-    hour: Math.floor(hourStart / 3_600_000), winAt: hourStart, claimed: true, lastWinAt: hourStart + 10 * 60_000,
-  })), { hourStart });
+  await page.evaluate(({ roundStart }) => localStorage.setItem('fubar-giveaway-rounds-v2', JSON.stringify({
+    roundStart, roundEnd: roundStart + 30 * 60_000, winAt: roundStart + 10 * 60_000, claimed: false, lastPrizeId: 'puzzle',
+  })), { roundStart });
   await page.reload();
   await expect(page.locator('.prize-detail h3')).toHaveText('Dummy 13 kit');
-  await expect(page.locator('#countdown')).toHaveText('20:00');
+  await expect(page.locator('#countdown')).toHaveText('25:00');
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.locator('#spin').click();
   await expect(page.locator('#show-dialog')).toBeVisible();
   await page.locator('#show-next').click();
   await expect(page.locator('#show-title')).toHaveText('No match this time. Glad you stopped by.');
   await page.locator('#show-next').click();
-  await page.clock.setFixedTime(hourStart + 40 * 60_000);
+  await page.clock.setFixedTime(roundStart + 12 * 60_000);
   await page.reload();
   await page.locator('#spin').click();
   await expect(page.locator('#show-dialog')).toBeVisible();
@@ -87,9 +87,8 @@ test('an existing puzzle win opens the kit after thirty minutes and survives ref
   await page.locator('#show-next').click();
   await page.reload();
   await expect(page.locator('#spin')).toBeDisabled();
-  const saved = JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1')));
-  expect(saved.claimedPrizes).toEqual(['puzzle', 'figure']);
-  expect(saved.lastWinAt).toBe(hourStart + 40 * 60_000);
+  const saved = JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2')));
+  expect(saved).toMatchObject({ claimed: true, lastPrizeId: 'figure', roundStart });
 });
 
 
@@ -98,13 +97,13 @@ test('both prizes are visible before a spin and browsing preserves the live sche
   const options = page.getByRole('group', { name: 'Prizes you could win' });
   await expect(options.getByRole('button', { name: /FUBAR Puzzle/ })).toBeVisible();
   await expect(options.getByRole('button', { name: /Dummy 13 kit/ })).toBeVisible();
-  const before = await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'));
+  const before = await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'));
   await options.getByRole('button', { name: /Dummy 13 kit/ }).click();
   await expect(page.locator('.prize-detail h3')).toHaveText('Dummy 13 kit');
   await expect(page.locator('#hero-puzzle img')).toHaveAttribute('src', /poseable-figure.jpg$/);
   await expect(page.locator('.machine-title p')).toContainText('This spin: FUBAR Puzzle');
   await expect(options.getByRole('button', { name: /Dummy 13 kit/ })).toHaveAttribute('aria-pressed', 'true');
-  expect(await page.evaluate(() => localStorage.getItem('fubar-hourly-drawing-v1'))).toBe(before);
+  expect(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'))).toBe(before);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   expect(await page.locator('.prize-card').evaluate(card => card.querySelector('#countdown').getBoundingClientRect().bottom <= card.getBoundingClientRect().bottom)).toBe(true);
   await page.screenshot({ path: '/tmp/fubar-prize-options.png', fullPage: true });

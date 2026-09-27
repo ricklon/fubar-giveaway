@@ -1,4 +1,5 @@
-import { restoreDrawing, nextPrize, claimPrize, remaining } from './drawing.js';
+import { restoreDrawing, roundAt, nextPrize, claimPrize, remaining } from './drawing.js';
+import { schedule } from './schedule.js';
 import { events } from './events.js';
 import { prizes } from './prizes.js';
 const prizeIds = prizes.map(prize => prize.id);
@@ -85,7 +86,7 @@ $('#preview-prize').replaceChildren(...prizes.map(prize => {
 }));
 const reels = [0,1,2].map(i => $(`#reel-${i}`));
 reels.forEach((reel, i) => { reel.innerHTML = icons[i]; });
-const storageKey = 'fubar-hourly-drawing-v1';
+const storageKey = 'fubar-giveaway-rounds-v2';
 let state;
 let storageOk = true;
 let busy = false;
@@ -96,15 +97,15 @@ if (reviewMode) {
   $('#demo-mode').disabled = true;
   $('#review-banner').hidden = false;
 }
-function readHour() {
+function readRound() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    state = restoreDrawing(saved, Date.now(), prizeIds, () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
+    state = restoreDrawing(saved, Date.now(), schedule, () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
     if (JSON.stringify(saved) !== JSON.stringify(state)) localStorage.setItem(storageKey, JSON.stringify(state));
   } catch { storageOk = false; }
 }
 function updateStatus() {
-  if (!busy) readHour();
+  if (!busy) readRound();
   const next = state && nextPrize(state, prizeIds);
   const prize = prizeById(next);
   if (!busy) {
@@ -115,17 +116,18 @@ function updateStatus() {
     if (!$('.machine').classList.contains('winner')) reels[0].innerHTML = icons[0];
   }
   document.querySelectorAll('#prize-options button').forEach(button => { button.disabled = busy; });
-  const gap = state?.lastWinAt != null && !state.claimed && state.winAt > Date.now();
-  const seconds = gap ? Math.ceil((state.winAt - Date.now()) / 1000) : remaining(Date.now());
-  $('#countdown-label').textContent = gap ? 'NEXT PRIZE OPENS IN' : 'NEXT HOUR STARTS IN';
+  const seconds = state ? remaining(state, Date.now()) : 0;
+  $('#countdown-label').textContent = 'NEXT ROUND IN';
+  document.querySelectorAll('.round-length').forEach(el => { el.textContent = roundLength(roundAt(Date.now(), schedule).minutes); });
   $('#countdown').textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
-  $('#prize-status').textContent = demo ? `${prizeById(selectedPrizeId || next).name} selected · demo only` : !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? 'All this hour’s prizes have found their people!' : gap ? `${prize.name} is next — the 30-minute gap is running` : `${prize.name} is up for grabs`;
+  $('#prize-status').textContent = demo ? `${prizeById(selectedPrizeId || next).name} selected · demo only` : !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? `This round’s prize has found its person! Next up: ${prize.name}` : `${prize.name} is up for grabs this round`;
   if (!busy) {
     $('#spin').disabled = !demo && (!storageOk || state?.claimed);
     $('#try-again').disabled = $('#spin').disabled;
-    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'MORE PRIZES NEXT HOUR' : 'GIVE IT A SPIN';
+    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'NEXT PRIZE SOON' : 'GIVE IT A SPIN';
   }
 }
+const roundLength = minutes => minutes === 30 ? 'every half hour' : minutes === 60 ? 'every hour' : `every ${minutes} minutes`;
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const showDialog = $('#show-dialog');
 showDialog.addEventListener('cancel', event => event.preventDefault());
@@ -190,7 +192,7 @@ async function spin(forceWin = false) {
   let won = false;
   let spinPrize;
   const claim = () => {
-    readHour();
+    readRound();
     if (!isDemo && (!storageOk || state.claimed)) return false;
     const spinAt = Date.now();
     spinPrize = prizeById(forceWin ? $('#preview-prize').value : isDemo && selectedPrizeId ? selectedPrizeId : state && nextPrize(state, prizeIds));
