@@ -6,5 +6,5 @@
 //   { from: '15:30', minutes: 60 },
 // Rebuild and restart the booth after changes.
 export const schedule = [
-  { from: '00:00', minutes: 30 },
+  { from: '00:00', minutes: 15 },
 ];

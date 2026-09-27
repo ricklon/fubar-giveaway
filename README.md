@@ -2,7 +2,7 @@
 
 An animated, responsive booth giveaway prototype. Run `npm install` and `npm run dev`. Use `npm run build` for a static production build and `npm test` for drawing rules.
 
-Visitors see both prize photos and names under **You could win** before spinning. Select either prize to view its details; demo spins use the selected prize, while live spins follow the scheduled rotation shown above the reels. Visitors spin three reels for a FUBAR Puzzle or Dummy 13 kit. The giveaway runs in rounds, every half hour by default (:00 and :30). Each round hides one prize at a random moment; the first visitor to spin at or after that moment wins it. Prize types alternate, including across rounds and days. Unclaimed prizes do not carry over, so a quiet booth gives away fewer. Because the moment is random, two wins can land close together across a round boundary. Keep the winning screen visible and have booth staff hand out the prize. Booth controls let you select either prize for a guaranteed demo preview without consuming a prize.
+Visitors see both prize photos and names under **You could win** before spinning. Select either prize to view its details; demo spins use the selected prize, while live spins follow the scheduled rotation shown above the reels. Visitors spin three reels for a FUBAR Puzzle or Dummy 13 kit. The giveaway runs in rounds, every 15 minutes by default (:00, :15, :30 and :45). Each round hides one prize at a random moment; the first visitor to spin at or after that moment wins it. Prize types alternate, including across rounds and days. Unclaimed prizes do not carry over, so a quiet booth gives away fewer. Because the moment is random, two wins can land close together across a round boundary. Keep the winning screen visible and have booth staff hand out the prize. Booth controls let you select either prize for a guaranteed demo preview without consuming a prize.
 
 State is stored locally in this browser, with Web Locks coordinating tabs where supported. This is a single-device prototype, not a secure raffle service: clearing or editing browser storage, changing the clock, or using another device can bypass the limit. A shared giveaway needs server-side award tracking and staff redemption. Live play is disabled when local storage is unavailable.
 
@@ -34,7 +34,7 @@ The current round, its hidden moment, and the prize order persist across refresh
 
 ## Round lengths
 
-Round lengths live in `src/schedule.js`, in the booth laptop's local time. To slow the giveaway later in the day, add rules such as `{ from: '14:00', minutes: 45 }` and `{ from: '15:30', minutes: 60 }`. Each rule applies until the next one starts; the round that straddles a change is shortened to end at the change. The page wording ("every half hour", "every hour", "every 45 minutes") follows the current rule. Rebuild and restart the booth after changes.
+Round lengths live in `src/schedule.js`, in the booth laptop's local time. To slow the giveaway later in the day, add rules such as `{ from: '14:00', minutes: 45 }` and `{ from: '15:30', minutes: 60 }`. Each rule applies until the next one starts; the round that straddles a change is shortened to end at the change. The page wording ("every 15 minutes", "every half hour", "every hour") follows the current rule. Rebuild and restart the booth after changes.
 
 ## Adding weekend prizes
 

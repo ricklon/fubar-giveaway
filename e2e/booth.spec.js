@@ -75,11 +75,11 @@ test('a round hides one prize at a random moment and survives refresh', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/?kiosk=1');
   await page.evaluate(({ roundStart }) => localStorage.setItem('fubar-giveaway-rounds-v2', JSON.stringify({
-    roundStart, roundEnd: roundStart + 30 * 60_000, winAt: roundStart + 10 * 60_000, claimed: false, lastPrizeId: 'puzzle',
+    roundStart, roundEnd: roundStart + 15 * 60_000, winAt: roundStart + 10 * 60_000, claimed: false, lastPrizeId: 'puzzle',
   })), { roundStart });
   await page.reload();
   await expect(page.locator('.prize-detail h3')).toHaveText('Dummy 13 kit');
-  await expect(page.locator('#countdown')).toHaveText('25:00');
+  await expect(page.locator('#countdown')).toHaveText('10:00');
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.locator('#spin').click();
   await expect(page.locator('#result')).toContainText('No match this time');
