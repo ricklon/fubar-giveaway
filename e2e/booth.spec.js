@@ -69,7 +69,7 @@ test('Dummy 13 kit preview uses its photo without consuming a prize', async ({ p
   expect(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2'))).toBe(before);
 });
 
-test('a round hides one prize at a random moment and survives refresh', async ({ page }) => {
+test('a round hides one prize at a random moment, survives refresh, and keeps spinning after a win', async ({ page }) => {
   const roundStart = Date.UTC(2026, 9, 3, 14);
   await page.clock.setFixedTime(roundStart + 5 * 60_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -91,7 +91,10 @@ test('a round hides one prize at a random moment and survives refresh', async ({
   await expect(page.locator('#show-demo')).toBeHidden();
   await page.locator('#show-next').click();
   await page.reload();
-  await expect(page.locator('#spin')).toBeDisabled();
+  await expect(page.locator('#prize-status')).toHaveText('This round’s prize has been won! FUBAR Puzzle is up for grabs next round');
+  await expect(page.locator('#spin')).toBeEnabled();
+  await page.locator('#spin').click();
+  await expect(page.locator('#result')).toContainText('No match this time');
   const saved = JSON.parse(await page.evaluate(() => localStorage.getItem('fubar-giveaway-rounds-v2')));
   expect(saved).toMatchObject({ claimed: true, lastPrizeId: 'figure', roundStart });
 });

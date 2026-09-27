@@ -120,11 +120,12 @@ function updateStatus() {
   $('#countdown-label').textContent = 'NEXT ROUND IN';
   document.querySelectorAll('.round-length').forEach(el => { el.textContent = roundLength(roundAt(Date.now(), schedule).minutes); });
   $('#countdown').textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
-  $('#prize-status').textContent = demo ? `${prizeById(selectedPrizeId || next).name} selected · demo only` : !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? `This round’s prize has found its person! Next up: ${prize.name}` : `${prize.name} is up for grabs this round`;
+  $('#prize-status').textContent = demo ? `${prizeById(selectedPrizeId || next).name} selected · demo only` : !storageOk ? 'Storage unavailable — demo spins only' : state?.claimed ? `This round’s prize has been won! ${prize.name} is up for grabs next round` : `${prize.name} is up for grabs this round`;
   if (!busy) {
-    $('#spin').disabled = !demo && (!storageOk || state?.claimed);
+    // After a win, visitors keep spinning; nothing more can be won until the next round.
+    $('#spin').disabled = !demo && !storageOk;
     $('#try-again').disabled = $('#spin').disabled;
-    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : state?.claimed ? 'NEXT PRIZE SOON' : 'GIVE IT A SPIN';
+    $('#spin span').textContent = demo ? 'TAKE A DEMO SPIN' : 'GIVE IT A SPIN';
   }
 }
 const roundLength = minutes => minutes === 30 ? 'every half hour' : minutes === 60 ? 'every hour' : `every ${minutes} minutes`;
@@ -210,7 +211,7 @@ async function spin(forceWin = false) {
   let spinPrize;
   const claim = () => {
     readRound();
-    if (!isDemo && (!storageOk || state.claimed)) return false;
+    if (!isDemo && !storageOk) return false;
     const spinAt = Date.now();
     spinPrize = prizeById(forceWin ? $('#preview-prize').value : isDemo && selectedPrizeId ? selectedPrizeId : state && nextPrize(state, prizeIds));
     const award = !isDemo && claimPrize(state, spinAt, prizeIds);
